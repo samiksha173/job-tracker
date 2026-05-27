@@ -1,0 +1,38 @@
+{% extends "hr/base.html" %}
+{% block title %}Applicants{% endblock %}
+{% block topbar_title %}All Applicants{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>👥 All Applicants</h1>
+  <p>View all registered applicants and their application history</p>
+</div>
+
+<div id="applicantsList"><p class="loading">Loading…</p></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadApplicants() {
+  const users = await fetch('/hr/api/applicants').then(r=>r.json());
+  const el = document.getElementById('applicantsList');
+  if (!users.length) { el.innerHTML='<p class="empty">No applicants registered yet.</p>'; return; }
+  el.innerHTML = `
+  <div class="hr-table-wrap">
+  <table class="hr-table">
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Applications</th><th>Statuses</th><th>Joined</th></tr></thead>
+    <tbody>${users.map((u,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td><strong>${u.name}</strong></td>
+        <td>${u.email}</td>
+        <td><span class="badge badge-type">${u.total_apps}</span></td>
+        <td>${u.statuses.map(s=>`<span class="hr-status-badge hrsb-${s.toLowerCase().replace(' ','-')}">${s}</span>`).join(' ')}</td>
+        <td>${u.joined}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+loadApplicants();
+</script>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% set active = 'tools' %}
+{% block title %}Tools — HireBloom{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="greeting-chip">🛠️ Data & Settings</div>
+  <h1>Tools</h1>
+  <p>Manage your application data, export backups, and configure settings.</p>
+</div>
+
+<div class="tools-grid">
+
+  <div class="tool-card info">
+    <h3>ℹ️ Data Storage</h3>
+    <p>All your data is stored locally in a SQLite database — private and secure.</p>
+    <div id="storageInfo" style="margin-top:10px">
+      <p class="loading">Loading…</p>
+    </div>
+  </div>
+
+  <div class="tool-card">
+    <h3>🗄️ Demo Data</h3>
+    <p>Load sample applications to explore all features of HireBloom.</p>
+    <p class="note">ℹ️ Demo apps will be merged with your existing data.</p>
+    <button class="btn-primary" onclick="loadDemo()" style="margin-top:12px">💾 Load Demo Data</button>
+  </div>
+
+  <div class="tool-card">
+    <h3>📥 Export Data</h3>
+    <p>Download all your applications as a JSON backup file.</p>
+    <a href="/api/applications/export" class="btn-primary" style="margin-top:12px">⭳ Export to JSON</a>
+  </div>
+
+  <div class="tool-card">
+    <h3>📤 Import Data</h3>
+    <p>Restore applications from a previously exported JSON backup file.</p>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData()"/>
+    <button class="btn-primary" onclick="document.getElementById('importFile').click()" style="margin-top:12px">⭱ Import JSON</button>
+  </div>
+
+  <div class="tool-card danger">
+    <h3>🗑️ Clear All Data</h3>
+    <p>Permanently delete all saved applications. <strong>This cannot be undone.</strong></p>
+    <button class="btn-danger" onclick="clearAll()" style="margin-top:12px">🗑️ Clear All Data</button>
+  </div>
+
+  <div class="tool-card">
+    <h3>♻️ Recycle Bin</h3>
+    <div id="binInfo" style="margin-bottom:10px"><p class="loading">Loading…</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-primary" onclick="openBin()">♻️ Open Recycle Bin</button>
+      <button class="btn-danger" onclick="emptyBin()">🗑 Empty Bin</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recycle Bin Modal -->
+<div id="binModal" class="modal hidden">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <h3>♻️ Recycle Bin</h3>
+      <button class="modal-close" onclick="document.getElementById('binModal').classList.add('hidden')">✕</button>
+    </div>
+    <div id="binList"></div>
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn-secondary" onclick="document.getElementById('binModal').classList.add('hidden')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadInfo() {
+  try{
+    const res = await fetch('/api/tools/storage-info');
+    const d = await res.json();
+    document.getElementById('storageInfo').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--text2)">
+          <span style="background:var(--pk100);color:var(--pk600);padding:3px 10px;border-radius:20px;font-weight:700;font-size:.72rem">${d.total_applications}</span>
+          active applications
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--text2)">
+          <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-weight:700;font-size:.72rem">${d.recycle_bin}</span>
+          in recycle bin
+        </div>
+      </div>`;
+    document.getElementById('binInfo').innerHTML = `<p style="font-size:.84rem;color:var(--text2)">${d.recycle_bin} item(s) currently in recycle bin</p>`;
+  }catch(e){
+    document.getElementById('storageInfo').innerHTML='<p style="font-size:.82rem;color:var(--text3)">Unable to load storage info.</p>';
+  }
+}
+
+async function loadDemo() {
+  try{
+    const res = await fetch('/api/tools/load-demo', { method:'POST' });
+    const d = await res.json();
+    showToast(`Loaded ${d.loaded} demo applications! 🌸`,'success');
+    loadInfo();
+  }catch(e){ showToast('Error loading demo data','error'); }
+}
+
+async function clearAll() {
+  if (!confirm('Delete ALL applications permanently? This cannot be undone.')) return;
+  try{
+    await fetch('/api/applications/clear', { method:'DELETE' });
+    showToast('All data cleared','info');
+    loadInfo();
+  }catch(e){ showToast('Error clearing data','error'); }
+}
+
+async function importData() {
+  const file = document.getElementById('importFile').files[0];
+  if (!file) return;
+  const fd = new FormData(); fd.append('file', file);
+  try{
+    const res = await fetch('/api/applications/import', { method:'POST', body: fd });
+    const d = await res.json();
+    if (d.success) showToast(`Imported ${d.imported} applications! 🌸`,'success');
+    else showToast(d.error||'Import failed','error');
+    loadInfo();
+  }catch(e){ showToast('Import error','error'); }
+}
+
+async function openBin() {
+  try{
+    const res = await fetch('/api/tools/recycle-bin');
+    const apps = await res.json();
+    const el = document.getElementById('binList');
+    if (!apps.length) {
+      el.innerHTML='<p class="empty" style="padding:24px">♻️ Recycle bin is empty.</p>';
+    } else {
+      el.innerHTML = apps.map(a=>`
+        <div class="app-row" style="margin-bottom:10px">
+          <div class="app-info">
+            <div class="app-info-text">
+              <strong>${escHtml(a.company)}</strong>
+              <div class="app-meta">${escHtml(a.position)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-sm btn-success" onclick="restoreApp(${a.id})">↩ Restore</button>
+            <button class="btn-sm btn-danger" onclick="permDelete(${a.id})">🗑 Delete Forever</button>
+          </div>
+        </div>`).join('');
+    }
+    document.getElementById('binModal').classList.remove('hidden');
+  }catch(e){ showToast('Error opening bin','error'); }
+}
+
+async function restoreApp(id) {
+  try{
+    await fetch(`/api/applications/${id}/restore`,{method:'POST'});
+    showToast('Restored! 🌸','success');
+    openBin(); loadInfo();
+  }catch(e){}
+}
+
+async function permDelete(id) {
+  if(!confirm('Delete forever? This cannot be undone.')) return;
+  try{
+    await fetch(`/api/applications/${id}/permanent`,{method:'DELETE'});
+    showToast('Permanently deleted','info');
+    openBin(); loadInfo();
+  }catch(e){}
+}
+
+async function emptyBin() {
+  if(!confirm('Empty the entire recycle bin? This cannot be undone.')) return;
+  try{
+    await fetch('/api/tools/recycle-bin/empty',{method:'DELETE'});
+    showToast('Recycle bin emptied','info');
+    loadInfo();
+  }catch(e){}
+}
+
+// Click outside modal
+document.getElementById('binModal').addEventListener('click',e=>{if(e.target===document.getElementById('binModal'))document.getElementById('binModal').classList.add('hidden')});
+
+loadInfo();
+</script>
+{% endblock %}

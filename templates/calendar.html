@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% set active = 'calendar' %}
+{% block title %}Calendar — HireBloom{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="greeting-chip">📅 Stay Organised</div>
+  <h1>Calendar</h1>
+  <p>Track interviews, deadlines, and important dates at a glance.</p>
+</div>
+
+<div class="calendar-layout">
+
+  <!-- ── Calendar Main ── -->
+  <div class="cal-main">
+    <div class="cal-nav">
+      <button onclick="changeMonth(-1)">← Previous</button>
+      <button onclick="goToday()">Today</button>
+      <button onclick="changeMonth(1)">Next →</button>
+      <span id="calTitle"></span>
+    </div>
+    <div class="cal-legend">
+      <span class="dot interview"></span>Interview
+      <span class="dot deadline"></span>Deadline
+      <span class="dot reminder"></span>Reminder
+      <span class="dot offer"></span>Offer
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- ── Sidebar ── -->
+  <div class="cal-sidebar">
+
+    <!-- Selected Date Events -->
+    <div class="sidebar-section">
+      <h3 id="selectedDateTitle">📋 Select a Date</h3>
+      <div id="dayEvents"><p class="empty">Click a date to see events</p></div>
+      <button class="btn-primary" style="width:100%;margin-top:12px;justify-content:center" onclick="showAddForm()">＋ Add Event / Reminder</button>
+    </div>
+
+    <!-- All Reminders -->
+    <div class="sidebar-section">
+      <h3>🔔 All Reminders</h3>
+      <div id="allReminders"><p class="empty">🔕 No reminders saved</p></div>
+      <a href="/reminders" class="link-all" style="display:block;text-align:center;margin-top:10px">View all →</a>
+    </div>
+
+    <!-- Add Form -->
+    <div class="sidebar-section hidden" id="addForm">
+      <h3>➕ Add Event / Reminder</h3>
+      <form id="eventForm">
+        <label class="form-label">Title</label>
+        <input class="form-input" id="evTitle" placeholder="e.g. Interview at TechNova" required/>
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="evDate" required/>
+        <label class="form-label">Type</label>
+        <select class="form-input" id="evType">
+          <option value="interview">🟢 Interview</option>
+          <option value="deadline">🔴 Deadline</option>
+          <option value="reminder">🟣 Reminder</option>
+          <option value="offer">🔵 Offer</option>
+        </select>
+        <label class="form-label">Time (optional)</label>
+        <input class="form-input" type="time" id="evTime"/>
+        <label class="form-label">Note</label>
+        <textarea class="form-input" id="evNote" rows="2" placeholder="Additional details…" style="resize:vertical"></textarea>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="hideAddForm()">Cancel</button>
+          <button type="submit" class="btn-primary">Save Event</button>
+        </div>
+      </form>
+    </div>
+
+  </div><!-- end sidebar -->
+</div>
+
+<div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let cur = new Date(), selDate = null, events = [];
+
+async function loadEvents() {
+  const ym = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`;
+  try {
+    const res = await fetch(`/api/events?month=${ym}`);
+    events = await res.json();
+  } catch(e){ events = []; }
+  renderCal();
+  loadReminders();
+}
+
+async function loadReminders() {
+  try{
+    const res = await fetch('/api/reminders');
+    const rems = await res.json();
+    const el = document.getElementById('allReminders');
+    if (!rems.length) { el.innerHTML='<p class="empty">🔕 No reminders saved</p>'; return; }
+    el.innerHTML = rems.map(r=>`
+      <div class="rem-item rem-${r.reminder_type}">
+        <div><strong>${escHtml(r.title)}</strong><br/><span style="font-size:.74rem;color:var(--text3)">${r.remind_date}${r.remind_time?' '+r.remind_time:''}</span></div>
+        <button onclick="deleteReminder(${r.id})">✕</button>
+      </div>`).join('');
+  }catch(e){}
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderCal() {
+  document.getElementById('calTitle').textContent = cur.toLocaleString('default',{month:'long',year:'numeric'});
+  const grid = document.getElementById('calGrid');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = days.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  const first = new Date(cur.getFullYear(), cur.getMonth(), 1).getDay();
+  const total = new Date(cur.getFullYear(), cur.getMonth()+1, 0).getDate();
+  const today = new Date();
+  for (let i=0;i<first;i++) html += '<div></div>';
+  for (let d=1;d<=total;d++) {
+    const ds = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayEvs = events.filter(e=>e.event_date===ds);
+    const isToday = d===today.getDate()&&cur.getMonth()===today.getMonth()&&cur.getFullYear()===today.getFullYear();
+    const isSel = ds===selDate;
+    const dots = [...new Set(dayEvs.map(e=>e.event_type))].map(t=>`<span class="dot ${t}" style="width:5px;height:5px;border-radius:50%;position:absolute;bottom:3px;left:50%;transform:translateX(-50%)"></span>`).join('');
+    html += `<div class="cal-cell ${isToday?'today':''} ${isSel?'selected':''}" onclick="selectDate('${ds}')" style="position:relative">${d}${dots}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function selectDate(ds) {
+  selDate = ds;
+  const d = new Date(ds+'T00:00');
+  document.getElementById('selectedDateTitle').textContent = d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('evDate').value = ds;
+  const dayEvs = events.filter(e=>e.event_date===ds);
+  const el = document.getElementById('dayEvents');
+  if (!dayEvs.length) {
+    el.innerHTML='<p class="empty">📋 No events on this date</p>';
+  } else {
+    const dotColor={interview:'#10b981',deadline:'var(--pk400)',reminder:'#7c3aed',offer:'#3b82f6'};
+    el.innerHTML = dayEvs.map(e=>`
+      <div class="ev-item ev-${e.event_type}">
+        <div style="flex:1">
+          <strong>${escHtml(e.title)}</strong>${e.event_time?` <span style="font-size:.74rem;color:var(--text3)">at ${e.event_time}</span>`:''}
+          ${e.note?`<div style="font-size:.76rem;color:var(--text3);margin-top:2px">${escHtml(e.note)}</div>`:''}
+        </div>
+        <button onclick="deleteEvent(${e.id})">✕</button>
+      </div>`).join('');
+  }
+  renderCal();
+}
+
+function changeMonth(dir) { cur.setMonth(cur.getMonth()+dir); loadEvents(); }
+function goToday() { cur = new Date(); loadEvents(); }
+function showAddForm() { document.getElementById('addForm').classList.remove('hidden'); }
+function hideAddForm() { document.getElementById('addForm').classList.add('hidden'); }
+
+document.getElementById('eventForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = {
+    title: document.getElementById('evTitle').value,
+    event_date: document.getElementById('evDate').value,
+    event_type: document.getElementById('evType').value,
+    event_time: document.getElementById('evTime').value,
+    note: document.getElementById('evNote').value
+  };
+  try{
+    const res = await fetch('/api/events', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (res.ok) {
+      await fetch('/api/reminders', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ title: body.title, remind_date: body.event_date, remind_time: body.event_time, reminder_type: body.event_type, note: body.note }) });
+      showToast('Event saved! 🌸','success');
+      document.getElementById('eventForm').reset();
+      hideAddForm();
+      loadEvents();
+    }
+  }catch(er){ showToast('Error saving event','error'); }
+});
+
+async function deleteEvent(id) {
+  try{
+    await fetch(`/api/events/${id}`, { method:'DELETE' });
+    showToast('Deleted','info');
+    loadEvents();
+    if(selDate) selectDate(selDate);
+  }catch(e){}
+}
+
+async function deleteReminder(id) {
+  try{
+    await fetch(`/api/reminders/${id}`, { method:'DELETE' });
+    showToast('Deleted','info');
+    loadReminders();
+  }catch(e){}
+}
+
+loadEvents();
+</script>
+{% endblock %}

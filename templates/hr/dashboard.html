@@ -1,0 +1,325 @@
+{% extends "hr/base.html" %}
+{% block title %}HR Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>HR Dashboard</h1>
+  <p>Manage all candidates and hiring decisions from one place.</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="hr-stats-grid">
+  <div class="hr-stat-card gray">
+    <div class="hs-icon">📋</div>
+    <div><div class="hs-num" id="st-total">—</div><div class="hs-label">Total Applications</div></div>
+  </div>
+  <div class="hr-stat-card orange">
+    <div class="hs-icon">⏳</div>
+    <div><div class="hs-num" id="st-pending">—</div><div class="hs-label">Pending Review</div></div>
+  </div>
+  <div class="hr-stat-card blue">
+    <div class="hs-icon">📅</div>
+    <div><div class="hs-num" id="st-interview">—</div><div class="hs-label">Interview</div></div>
+  </div>
+  <div class="hr-stat-card green">
+    <div class="hs-icon">✅</div>
+    <div><div class="hs-num" id="st-hired">—</div><div class="hs-label">Hired / Selected</div></div>
+  </div>
+  <div class="hr-stat-card red">
+    <div class="hs-icon">❌</div>
+    <div><div class="hs-num" id="st-rejected">—</div><div class="hs-label">Rejected</div></div>
+  </div>
+  <div class="hr-stat-card purple">
+    <div class="hs-icon">👥</div>
+    <div><div class="hs-num" id="st-applicants">—</div><div class="hs-label">Total Applicants</div></div>
+  </div>
+</div>
+
+<!-- Recent Applicants -->
+<div class="section-header">
+  <h2>Recent Applicants</h2>
+  <a href="/hr/applications" class="link-all">View All →</a>
+</div>
+<div id="recentList"><p class="loading">Loading…</p></div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* Interview datetime field */
+.interview-card { background:#fffbeb; border:1.5px solid #fcd34d; border-radius:8px; padding:14px 16px; margin-top:4px; }
+.interview-card-title { font-size:.8rem; font-weight:700; color:#78350f; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+
+/* Message thread */
+.msg-thread { display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto; padding:4px 0; margin-bottom:8px; }
+.msg-bubble { padding:9px 13px; border-radius:10px; font-size:.83rem; line-height:1.5; max-width:88%; }
+.msg-bubble.from-hr  { background:#e8f8f1; color:#111827; align-self:flex-start; border-bottom-left-radius:3px; }
+.msg-bubble.from-app { background:#f0f0ff; color:#111827; align-self:flex-end; border-bottom-right-radius:3px; }
+.msg-meta { font-size:.69rem; color:#9ca3af; margin-top:3px; }
+.msg-empty { text-align:center; color:#9ca3af; font-size:.82rem; padding:16px; }
+
+/* Left/right modal split */
+.rv-left  { padding:20px 22px; border-right:1px solid #e8ecf0; }
+.rv-right { padding:20px 22px; background:#f9fffe; }
+</style>
+
+<script>
+let _appId = null;
+
+async function init() {
+  await Promise.all([loadStats(), loadRecent()]);
+}
+
+/* ── Stats ── */
+async function loadStats() {
+  try {
+    const s = await fetch('/hr/api/stats').then(r => r.json());
+    document.getElementById('st-total').textContent      = s.total            ?? 0;
+    document.getElementById('st-pending').textContent    = s.pending          ?? 0;
+    document.getElementById('st-interview').textContent  = s.interview        ?? 0;
+    document.getElementById('st-hired').textContent      = (s.hired??0) + (s.eligible??0);
+    document.getElementById('st-rejected').textContent   = (s.rejected??0) + (s.not_eligible??0);
+    document.getElementById('st-applicants').textContent = s.total_applicants ?? 0;
+  } catch(e) { console.error(e); }
+}
+
+/* ── Recent list ── */
+async function loadRecent() {
+  try {
+    const apps = await fetch('/hr/api/applications').then(r => r.json());
+    const el = document.getElementById('recentList');
+    if (!apps.length) { el.innerHTML = '<p class="empty">No applications yet.</p>'; return; }
+    el.innerHTML = apps.slice(0, 8).map(rowHtml).join('');
+  } catch(e) {
+    document.getElementById('recentList').innerHTML = '<p class="empty">Failed to load.</p>';
+  }
+}
+
+/* ── App row ── */
+function rowHtml(a) {
+  const name   = a.applicant_name  || '—';
+  const status = a.hr_status || 'Pending';
+  const bCls   = 'hr-status-badge hrsb-' + status.toLowerCase().replace(/\s+/g,'-');
+
+  const resumeBtn = a.resume_filename
+    ? `<a class="btn-resume" href="/api/resume/${encodeURIComponent(a.resume_filename)}" target="_blank">📄 Resume</a>`
+    : `<span class="btn-no-resume">No Resume</span>`;
+
+  return `
+  <div class="hr-app-row" onclick='openReview(${JSON.stringify(a).replace(/'/g,"&#39;")})'>
+    <div>
+      <div class="har-name">${esc(name)}</div>
+      <div class="har-pos">${esc(a.position||'')} @ ${esc(a.company||'')}</div>
+      <div class="har-meta" style="margin-top:4px">
+        ${a.job_type         ? `<span class="text-sm text-muted">${esc(a.job_type)}</span>` : ''}
+        ${a.location         ? `<span class="text-sm text-muted">📍 ${esc(a.location)}</span>` : ''}
+        ${a.application_date ? `<span class="har-date">📅 ${esc(a.application_date)}</span>` : ''}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+      <span class="${bCls}">${esc(status)}</span>
+      ${resumeBtn}
+      <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openReview(${JSON.stringify(a).replace(/'/g,"&#39;")})">✏️ Review</button>
+    </div>
+  </div>`;
+}
+
+/* ── Open modal ── */
+async function openReview(a) {
+  _appId = a.id;
+  document.getElementById('modalTitle').textContent =
+    `${a.position||''} @ ${a.company||''} — ${a.applicant_name||''}`;
+
+  // Load messages
+  let messages = [];
+  try {
+    const res = await fetch(`/hr/api/applications/${a.id}/messages`);
+    if (res.ok) messages = await res.json();
+  } catch(e) {}
+
+  // Resume block
+  const resumeBlock = a.resume_filename
+    ? `<div class="resume-box">
+         <div>
+           <div class="resume-name">📄 ${esc(a.resume_filename)}</div>
+           <div class="resume-sub">Click to open</div>
+         </div>
+         <a class="resume-open" href="/api/resume/${encodeURIComponent(a.resume_filename)}" target="_blank">Open Resume ↗</a>
+       </div>`
+    : `<div class="resume-none">📭 No resume uploaded</div>`;
+
+  // Extra text blocks
+  let extras = '';
+  if (a.job_description) extras += `
+    <div class="detail-section" style="margin-top:10px">
+      <h4>Job Description</h4>
+      <div class="rp-desc"><p>${esc(a.job_description)}</p></div>
+    </div>`;
+  if (a.notes) extras += `
+    <div class="detail-section" style="margin-top:10px">
+      <h4>Applicant Notes</h4>
+      <div class="rp-desc"><p>${esc(a.notes)}</p></div>
+    </div>`;
+
+  // Interview field — show if status is Interview or already has date
+  const showInterview = a.hr_status === 'Interview' || a.interview_datetime;
+
+  // Message thread HTML
+  const threadHtml = messages.length
+    ? messages.map(m => `
+        <div>
+          <div class="msg-bubble ${m.sender==='hr' ? 'from-hr' : 'from-app'}">${esc(m.message)}</div>
+          <div class="msg-meta" style="text-align:${m.sender==='hr'?'left':'right'}">${m.sender==='hr'?'HR':'Applicant'} · ${esc(m.sent_at||'')}</div>
+        </div>`).join('')
+    : `<div class="msg-empty">No messages yet.</div>`;
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="rv-grid">
+
+      <!-- Left: info + resume -->
+      <div class="rv-left">
+        <div class="detail-section">
+          <h4>Applicant Info</h4>
+          <p><strong>Name:</strong>     ${esc(a.applicant_name  ||'—')}</p>
+          <p><strong>Email:</strong>    ${esc(a.applicant_email ||'—')}</p>
+          <p><strong>Company:</strong>  ${esc(a.company         ||'—')}</p>
+          <p><strong>Position:</strong> ${esc(a.position        ||'—')}</p>
+          <p><strong>Job Type:</strong> ${esc(a.job_type        ||'—')}</p>
+          <p><strong>Location:</strong> ${esc(a.location        ||'—')}</p>
+          <p><strong>Salary:</strong>   ${esc(a.salary          ||'—')}</p>
+          <p><strong>Applied:</strong>  ${esc(a.application_date||'—')}</p>
+        </div>
+
+        <div class="detail-section">
+          <h4>Resume</h4>
+          ${resumeBlock}
+        </div>
+
+        ${extras}
+
+        <!-- Message Thread -->
+        <div class="detail-section" style="margin-top:10px">
+          <h4>💬 Messages</h4>
+          <div class="msg-thread" id="msgThread">${threadHtml}</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="hrMsgInput" placeholder="Type a message to applicant…" style="flex:1;font-size:.83rem;padding:8px 11px;"/>
+            <button class="btn btn-primary btn-sm" onclick="sendHRMessage(${a.id})">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: HR decision form -->
+      <div class="rv-right">
+        <div class="detail-section">
+          <h4>HR Decision</h4>
+        </div>
+
+        <div class="rv-form-group">
+          <label>Update Status</label>
+          <select id="rvStatus" onchange="toggleInterviewField(this.value)">
+            <option value="Pending"      ${a.hr_status==='Pending'      ?'selected':''}>Pending</option>
+            <option value="Eligible"     ${a.hr_status==='Eligible'     ?'selected':''}>Eligible</option>
+            <option value="Not Eligible" ${a.hr_status==='Not Eligible' ?'selected':''}>Not Eligible</option>
+            <option value="Interview"    ${a.hr_status==='Interview'    ?'selected':''}>Interview</option>
+            <option value="Hired"        ${a.hr_status==='Hired'        ?'selected':''}>Hired / Selected</option>
+            <option value="Rejected"     ${a.hr_status==='Rejected'     ?'selected':''}>Rejected</option>
+          </select>
+        </div>
+
+        <!-- Interview Date/Time — shown when Interview selected -->
+        <div class="rv-form-group interview-card" id="interviewBlock" style="${showInterview?'':'display:none'}">
+          <div class="interview-card-title">📅 Schedule Interview</div>
+          <label style="font-size:.8rem;font-weight:600;color:#78350f;display:block;margin-bottom:5px;">Date & Time</label>
+          <input type="datetime-local" id="rvInterviewDatetime" value="${esc(a.interview_datetime||'')}"/>
+          <p style="font-size:.72rem;color:#92400e;margin-top:6px;">This will be shown to the applicant on their dashboard.</p>
+        </div>
+
+        <div class="rv-form-group">
+          <label>Message to Applicant <span class="text-muted text-sm">(optional — shown on their dashboard)</span></label>
+          <textarea id="rvNotes" placeholder="e.g. Congratulations! Please join us on…">${esc(a.hr_notes||'')}</textarea>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="saveReview()">💾 Save Decision</button>
+
+        <!-- Quick status info -->
+        <div style="background:#f3f4f6;border-radius:8px;padding:12px;font-size:.78rem;color:#6b7280;line-height:1.6;">
+          <strong style="color:#374151;">What happens next:</strong><br>
+          • <strong>Eligible</strong> — applicant sees a success banner<br>
+          • <strong>Interview</strong> — applicant sees interview date/time<br>
+          • <strong>Hired</strong> — applicant gets a congratulations notice<br>
+          • <strong>Rejected</strong> — applicant is politely informed
+        </div>
+      </div>
+
+    </div>`;
+
+  document.getElementById('appModal').classList.remove('hidden');
+}
+
+function toggleInterviewField(status) {
+  const block = document.getElementById('interviewBlock');
+  if (block) block.style.display = status === 'Interview' ? '' : 'none';
+}
+
+/* ── Send message from HR ── */
+async function sendHRMessage(appId) {
+  const input = document.getElementById('hrMsgInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  try {
+    const res = await fetch(`/hr/api/applications/${appId}/messages`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: msg, sender: 'hr' })
+    });
+    if (res.ok) {
+      input.value = '';
+      // Append to thread
+      const thread = document.getElementById('msgThread');
+      const existing = thread.querySelector('.msg-empty');
+      if (existing) existing.remove();
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <div class="msg-bubble from-hr">${esc(msg)}</div>
+        <div class="msg-meta">HR · just now</div>`;
+      thread.appendChild(div);
+      thread.scrollTop = thread.scrollHeight;
+      showToast('Message sent!', 'success');
+    }
+  } catch(e) { showToast('Failed to send.', 'error'); }
+}
+
+/* ── Save decision ── */
+async function saveReview() {
+  if (!_appId) return;
+  const hr_status          = document.getElementById('rvStatus').value;
+  const hr_notes           = document.getElementById('rvNotes').value.trim();
+  const dtEl               = document.getElementById('rvInterviewDatetime');
+  const interview_datetime = dtEl ? dtEl.value : '';
+
+  try {
+    const res = await fetch(`/hr/api/applications/${_appId}/review`, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json'},
+      body:    JSON.stringify({ hr_status, hr_notes, interview_datetime })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ Decision saved!', 'success');
+      closeModal();
+      await Promise.all([loadStats(), loadRecent()]);
+    } else {
+      showToast(data.error || 'Failed to save.', 'error');
+    }
+  } catch(e) {
+    showToast('Network error. Please try again.', 'error');
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+{% endblock %}

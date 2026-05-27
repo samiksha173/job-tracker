@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% set active = 'application' %}
+{% block title %}Applications — HireBloom{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="greeting-chip">📋 Manage Your Journey</div>
+  <h1>Applications</h1>
+  <p>Track every job and internship application in one beautiful place.</p>
+</div>
+
+<!-- Stats Row -->
+<div class="stats-grid" id="app-stats-row" style="margin-bottom:24px">
+  <div class="stat-card"><div class="stat-icon si-blue">📤</div><div class="stat-body"><span class="stat-num" id="st-total">0</span><span class="stat-label">Total</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-pink">🕒</div><div class="stat-body"><span class="stat-num" id="st-applied">0</span><span class="stat-label">Applied</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-amber">📅</div><div class="stat-body"><span class="stat-num" id="st-interview">0</span><span class="stat-label">Interview</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-green">🎉</div><div class="stat-body"><span class="stat-num" id="st-offer">0</span><span class="stat-label">Offer</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-rose">❌</div><div class="stat-body"><span class="stat-num" id="st-rejected">0</span><span class="stat-label">Rejected</span></div></div>
+</div>
+
+<div class="two-col" style="align-items:start">
+
+  <!-- LEFT: Application List + Progress -->
+  <div>
+
+    <!-- Filter & List Section -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2>All Applications</h2>
+        <span class="link-all" onclick="document.getElementById('add-app-section').scrollIntoView({behavior:'smooth'})">+ Add New</span>
+      </div>
+      <div class="filter-row">
+        <input class="filter-input" type="text" id="searchApp" placeholder="🔍 Search company or role…" oninput="filterApps()"/>
+        <select class="filter-select" id="filterStatus" onchange="filterApps()">
+          <option value="">All Statuses</option>
+          <option>Applied</option><option>Interview</option><option>Offer</option><option>Rejected</option>
+        </select>
+        <select class="filter-select" id="filterType" onchange="filterApps()">
+          <option value="">All Types</option>
+          <option>Internship</option><option>Full-Time</option><option>Part-Time</option>
+        </select>
+      </div>
+      <div id="apps-list"><p class="loading">Loading applications…</p></div>
+    </div>
+
+    <!-- Application Progress Card -->
+    <div class="section-card" id="progress-card">
+      <div class="section-header">
+        <h2>Application Progress</h2>
+      </div>
+      <div class="progress-wrap">
+        <div class="prog-label"><span>Response rate</span><span class="prog-pct" id="prog-response">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="prog-response-bar" style="width:0" data-target="0"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="prog-label"><span>Interview conversion</span><span class="prog-pct" id="prog-interview">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="prog-interview-bar" style="width:0" data-target="0"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="prog-label"><span>Offer rate</span><span class="prog-pct" id="prog-offer">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="prog-offer-bar" style="width:0" data-target="0"></div></div>
+      </div>
+      <div class="prog-sub" id="prog-sub">Based on your applications · updated live</div>
+      <div class="tip-card" style="margin-top:14px">
+        <div class="tip-icon">💡</div>
+        <div>
+          <div class="tip-title">Pro Tip</div>
+          <div class="tip-text">Personalize your cover letter for each role. Mentioning the company's recent work can increase your callback rate by up to 40%.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Add Form -->
+  <div id="add-app-section">
+    <div class="section-card">
+      <div class="section-header">
+        <h2>Add New Application</h2>
+      </div>
+      <form id="appForm" enctype="multipart/form-data">
+
+        <fieldset>
+          <legend>Basic Information</legend>
+          <div class="form-row">
+            <label>Company Name *<input name="company" placeholder="e.g. TechNova Inc." required/></label>
+            <label>Position *<input name="position" placeholder="e.g. Frontend Developer" required/></label>
+          </div>
+          <div class="form-row">
+            <label>Status *
+              <select name="status" required>
+                <option value="">-- Select --</option>
+                <option>Applied</option><option>Interview</option><option>Offer</option><option>Rejected</option>
+              </select>
+            </label>
+            <label>Job Type *
+              <select name="job_type" required>
+                <option value="">-- Select --</option>
+                <option>Internship</option><option>Full-Time</option><option>Part-Time</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Location<input name="location" placeholder="e.g. Mumbai / Remote"/></label>
+            <label>Salary/Stipend<input name="salary" placeholder="e.g. ₹12 LPA"/></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Important Dates</legend>
+          <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+            <label>Application Date *<input type="date" name="application_date" required/></label>
+            <label>Deadline<input type="date" name="deadline"/></label>
+            <label>Interview Date<input type="date" name="interview_date"/></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Resume / CV</legend>
+          <div class="file-upload" id="dropZone">
+            <p style="font-size:1.4rem;margin-bottom:6px">📄</p>
+            <p style="font-weight:600;color:var(--pk600)">Click to upload or drag & drop</p>
+            <p style="font-size:.76rem;margin-top:4px">PDF, DOC, DOCX up to 5 MB</p>
+            <input type="file" name="resume" id="resumeInput" accept=".pdf,.doc,.docx" style="display:none"/>
+          </div>
+          <div id="fileInfo" class="hidden file-info">
+            <span>📎</span><span id="fileName"></span>
+            <button type="button" onclick="clearFile()" style="margin-left:auto">✕ Remove</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Additional Details</legend>
+          <label>Job Description<textarea name="job_description" rows="3" placeholder="Paste the job description here…"></textarea></label>
+          <label>Notes<textarea name="notes" rows="2" placeholder="Personal notes about this application…"></textarea></label>
+          <div class="form-row">
+            <label>Contact Person<input name="contact_person" placeholder="Recruiter name"/></label>
+            <label>Contact Email<input type="email" name="contact_email" placeholder="recruiter@company.com"/></label>
+          </div>
+          <label>Job Posting URL<input type="url" name="job_url" placeholder="https://…"/></label>
+        </fieldset>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="resetForm()">Cancel</button>
+          <button type="submit" class="btn-primary">🌸 Add Application</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div><!-- end two-col -->
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Edit Application</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <form id="editForm">
+      <input type="hidden" id="editId"/>
+      <div class="form-row">
+        <div><label class="form-label">Company</label><input class="form-input" id="eCompany"/></div>
+        <div><label class="form-label">Position</label><input class="form-input" id="ePosition"/></div>
+      </div>
+      <div class="form-row">
+        <div><label class="form-label">Status</label>
+          <select class="form-input" id="eStatus"><option>Applied</option><option>Interview</option><option>Offer</option><option>Rejected</option></select>
+        </div>
+        <div><label class="form-label">Job Type</label>
+          <select class="form-input" id="eType"><option>Internship</option><option>Full-Time</option><option>Part-Time</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label class="form-label">Location</label><input class="form-input" id="eLocation"/></div>
+        <div><label class="form-label">Salary</label><input class="form-input" id="eSalary"/></div>
+      </div>
+      <label class="form-label">Notes</label>
+      <textarea class="form-input" id="eNotes" rows="3" style="resize:vertical"></textarea>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
+
+{% endblock %}
+
+{% block head %}
+<style>
+/* ── App Cards ── */
+.app-card{
+  background:var(--white);
+  border-radius:14px;
+  padding:16px 18px;
+  margin-bottom:12px;
+  border:1.5px solid var(--border);
+  border-left:4px solid var(--pk400);
+  transition:all .2s;
+  animation:fadeUp .35s ease both;
+  box-shadow:var(--card-shadow)
+}
+.app-card:hover{transform:translateX(3px);box-shadow:var(--card-shadow-hover);border-color:var(--pk300)}
+.app-card.status-offer{border-left-color:#16a34a}
+.app-card.status-interview{border-left-color:#d97706}
+.app-card.status-rejected{border-left-color:#e11d48}
+.app-card.status-applied{border-left-color:var(--pk400)}
+.app-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.app-card-title{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
+.app-card-company{font-size:.92rem;font-weight:700;color:var(--text)}
+.app-card-role{font-size:.82rem;color:var(--text2);font-weight:500}
+.app-card-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:.76rem;color:var(--text3);margin-top:6px;align-items:center}
+.app-card-meta span{display:flex;align-items:center;gap:4px}
+.app-card-actions{display:flex;gap:6px;flex-shrink:0}
+.app-card-actions button{
+  background:var(--pk50);border:1.5px solid var(--border);
+  border-radius:8px;padding:5px 9px;font-size:.82rem;
+  color:var(--text2);transition:.15s
+}
+.app-card-actions button:hover{background:var(--pk100);border-color:var(--pk300)}
+.resume-link{display:inline-flex;align-items:center;gap:5px;font-size:.74rem;color:var(--pk500);font-weight:600;background:var(--pk50);padding:3px 10px;border-radius:8px;border:1px solid var(--pk200);transition:.15s}
+.resume-link:hover{background:var(--pk100)}
+
+/* ── Progress ── */
+.progress-wrap{margin:10px 0 6px}
+.prog-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2);margin-bottom:5px;font-weight:500}
+.prog-pct{font-weight:700;color:var(--pk500)}
+.prog-track{background:var(--pk100);border-radius:99px;height:8px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pk300),var(--pk500));transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.prog-sub{font-size:.72rem;color:var(--text3);margin-top:14px;padding-top:10px;border-top:1px solid var(--pk100)}
+.tip-card{background:linear-gradient(120deg,var(--pk50),#fff0f8);border:1.5px solid var(--pk200);border-radius:14px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start}
+.tip-icon{font-size:1.3rem;flex-shrink:0}
+.tip-title{font-size:.82rem;font-weight:700;color:var(--pk600);margin-bottom:2px}
+.tip-text{font-size:.77rem;color:var(--text2);line-height:1.5}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allApps = [];
+const COLORS = ['co-a','co-b','co-c','co-d','co-e','co-f','co-g'];
+const STATBADGE = {applied:'b-applied',interview:'b-interview',offer:'b-offer',rejected:'b-rejected'};
+
+function initials(str){ return str.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+function colorFor(str){ let h=0; for(let c of str) h=(h<<5)-h+c.charCodeAt(0); return COLORS[Math.abs(h)%COLORS.length]; }
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadApps() {
+  const res = await fetch('/api/applications');
+  allApps = await res.json();
+  renderApps(allApps);
+  updateStats(allApps);
+  updateProgress(allApps);
+}
+
+function updateStats(apps){
+  document.getElementById('st-total').textContent = apps.length;
+  document.getElementById('st-applied').textContent = apps.filter(a=>a.status==='Applied').length;
+  document.getElementById('st-interview').textContent = apps.filter(a=>a.status==='Interview').length;
+  document.getElementById('st-offer').textContent = apps.filter(a=>a.status==='Offer').length;
+  document.getElementById('st-rejected').textContent = apps.filter(a=>a.status==='Rejected').length;
+}
+
+function updateProgress(apps){
+  const total = apps.length || 1;
+  const interviews = apps.filter(a=>a.status==='Interview'||a.status==='Offer').length;
+  const offers = apps.filter(a=>a.status==='Offer').length;
+  const responses = apps.filter(a=>a.status!=='Applied').length;
+  const resp = Math.round(responses/total*100);
+  const intv = Math.round(interviews/total*100);
+  const offr = Math.round(offers/total*100);
+  document.getElementById('prog-response').textContent = resp+'%';
+  document.getElementById('prog-interview').textContent = intv+'%';
+  document.getElementById('prog-offer').textContent = offr+'%';
+  setTimeout(()=>{
+    document.getElementById('prog-response-bar').style.width = resp+'%';
+    document.getElementById('prog-interview-bar').style.width = intv+'%';
+    document.getElementById('prog-offer-bar').style.width = offr+'%';
+  }, 200);
+  document.getElementById('prog-sub').textContent = `Based on ${apps.length} application${apps.length!==1?'s':''} · updated live`;
+}
+
+function renderApps(apps) {
+  const el = document.getElementById('apps-list');
+  if (!apps.length) {
+    el.innerHTML = '<p class="empty">🌸 No applications found. Add your first one!</p>';
+    return;
+  }
+  el.innerHTML = apps.map(a => {
+    const statusLow = (a.status||'applied').toLowerCase();
+    const clr = colorFor(a.company);
+    const init = initials(a.company);
+    const badgeCls = STATBADGE[statusLow] || 'b-applied';
+    return `
+    <div class="app-card status-${statusLow}">
+      <div class="app-card-header">
+        <div class="app-card-title">
+          <div class="co-avatar ${clr}">${init}</div>
+          <div>
+            <div class="app-card-company">${escHtml(a.company)}</div>
+            <div class="app-card-role">${escHtml(a.position)}</div>
+          </div>
+          <span class="badge ${badgeCls}">${escHtml(a.status)}</span>
+          ${a.job_type?`<span class="badge badge-type">${escHtml(a.job_type)}</span>`:''}
+        </div>
+        <div class="app-card-actions">
+          <button title="Edit" onclick='openEdit(${JSON.stringify(a).replace(/'/g,"&#39;")})'>✏️</button>
+          <button title="Delete" onclick="deleteApp(${a.id})">🗑️</button>
+        </div>
+      </div>
+      <div class="app-card-meta">
+        ${a.location?`<span>📍 ${escHtml(a.location)}</span>`:''}
+        ${a.salary?`<span>💰 ${escHtml(a.salary)}</span>`:''}
+        ${a.application_date?`<span>📅 Applied: ${escHtml(a.application_date)}</span>`:''}
+        ${a.deadline?`<span>⏰ Deadline: ${escHtml(a.deadline)}</span>`:''}
+        ${a.resume_filename?`<a class="resume-link" href="/api/resume/${escHtml(a.resume_filename)}" target="_blank">📄 Resume</a>`:''}
+      </div>
+      ${a.notes?`<div style="margin-top:8px;font-size:.78rem;color:var(--text3);background:var(--pk50);padding:6px 10px;border-radius:8px;border-left:3px solid var(--pk200)">📝 ${escHtml(a.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function filterApps() {
+  const s = document.getElementById('filterStatus').value;
+  const t = document.getElementById('filterType').value;
+  const q = document.getElementById('searchApp').value.toLowerCase();
+  renderApps(allApps.filter(a =>
+    (!s || a.status===s) &&
+    (!t || a.job_type===t) &&
+    (!q || a.company.toLowerCase().includes(q) || a.position.toLowerCase().includes(q))
+  ));
+}
+
+// Form submit
+document.getElementById('appForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const res = await fetch('/api/applications', { method:'POST', body: fd });
+  if (res.ok) { showToast('Application added! 🌸','success'); e.target.reset(); clearFile(); loadApps(); }
+  else { const d = await res.json(); showToast(d.error||'Error adding application','error'); }
+});
+
+// File upload
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('click', () => document.getElementById('resumeInput').click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.background='var(--pk100)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.background=''; });
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.style.background=''; document.getElementById('resumeInput').files = e.dataTransfer.files; updateFileInfo(); });
+document.getElementById('resumeInput').addEventListener('change', updateFileInfo);
+function updateFileInfo() {
+  const f = document.getElementById('resumeInput').files[0];
+  if (f) { document.getElementById('fileName').textContent = f.name; document.getElementById('fileInfo').classList.remove('hidden'); }
+}
+function clearFile() { document.getElementById('resumeInput').value=''; document.getElementById('fileInfo').classList.add('hidden'); }
+function resetForm() { document.getElementById('appForm').reset(); clearFile(); }
+
+// Edit
+function openEdit(a) {
+  document.getElementById('editId').value = a.id;
+  document.getElementById('eCompany').value = a.company;
+  document.getElementById('ePosition').value = a.position;
+  document.getElementById('eStatus').value = a.status;
+  document.getElementById('eType').value = a.job_type||'';
+  document.getElementById('eLocation').value = a.location||'';
+  document.getElementById('eSalary').value = a.salary||'';
+  document.getElementById('eNotes').value = a.notes||'';
+  document.getElementById('editModal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+document.getElementById('editForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('editId').value;
+  const body = {
+    company: document.getElementById('eCompany').value,
+    position: document.getElementById('ePosition').value,
+    status: document.getElementById('eStatus').value,
+    job_type: document.getElementById('eType').value,
+    location: document.getElementById('eLocation').value,
+    salary: document.getElementById('eSalary').value,
+    notes: document.getElementById('eNotes').value
+  };
+  const res = await fetch(`/api/applications/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (res.ok) { showToast('Updated! ✨','success'); closeModal(); loadApps(); }
+  else showToast('Error updating','error');
+});
+
+async function deleteApp(id) {
+  if (!confirm('Move to recycle bin?')) return;
+  await fetch(`/api/applications/${id}`, { method:'DELETE' });
+  showToast('Moved to recycle bin','info'); loadApps();
+}
+
+// Click outside modal
+document.getElementById('editModal').addEventListener('click', e => { if(e.target===document.getElementById('editModal')) closeModal(); });
+
+loadApps();
+</script>
+{% endblock %}

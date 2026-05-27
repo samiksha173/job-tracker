@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Job Tracker</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;font-family:'Segoe UI',sans-serif;background:#f0faf4;display:flex;
+      flex-direction:column;align-items:center;justify-content:center;padding:24px 16px}
+    .page{display:none;width:100%;max-width:520px;animation:fadeUp .35s ease}
+    .page.active{display:flex;flex-direction:column;align-items:center}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .card{background:#fff;border-radius:22px;padding:40px 36px;width:100%;
+      box-shadow:0 16px 50px rgba(0,0,0,.12)}
+    .topbar{display:flex;align-items:center;gap:10px;margin-bottom:28px;width:100%}
+    .topbar .back-btn{background:none;border:1px solid #e5e7eb;border-radius:9px;padding:6px 10px;
+      cursor:pointer;font-size:.85rem;color:#6b7280;transition:.2s}
+    .topbar .back-btn:hover{background:#f9fafb}
+    .topbar .logo-wrap{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1rem;color:#111}
+    .topbar .logo-wrap span.icon{font-size:1.5rem}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:#f0faf4;border:1px solid #a7f3d0;
+      color:#059669;border-radius:20px;padding:5px 14px;font-size:.78rem;font-weight:700;
+      letter-spacing:.04em;margin-bottom:18px}
+    .badge.hr{background:#f0fdf4;border-color:#6ee7b7;color:#047857}
+    .badge .dot{width:7px;height:7px;border-radius:50%;background:#10b981;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .auth-tabs{display:flex;background:#f3f4f6;border-radius:30px;padding:4px;margin-bottom:28px;gap:4px}
+    .tab-btn{flex:1;padding:10px 20px;border:none;border-radius:26px;cursor:pointer;font-size:.9rem;
+      font-weight:700;color:#6b7280;background:transparent;transition:.25s}
+    .tab-btn.active{background:#10b981;color:#fff;box-shadow:0 2px 10px rgba(16,185,129,.35)}
+    .form-heading{font-size:1.45rem;font-weight:800;color:#111;margin-bottom:4px}
+    .form-sub{color:#6b7280;font-size:.85rem;margin-bottom:22px}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:6px}
+    .input-wrap{position:relative}
+    .input-wrap .icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.95rem;color:#9ca3af}
+    .form-group input,.form-group select{width:100%;padding:11px 12px 11px 40px;
+      border:2px solid #e5e7eb;border-radius:10px;font-size:.93rem;transition:.2s;
+      background:#fafafa;color:#111;appearance:none}
+    .form-group select{padding-right:32px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+    .form-group input:focus,.form-group select:focus{border-color:#10b981;background:#fff;outline:none;box-shadow:0 0 0 4px rgba(16,185,129,.1)}
+    .form-group input.error{border-color:#ef4444}
+    .form-group input.valid{border-color:#10b981}
+    .eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+      background:none;border:none;cursor:pointer;font-size:.95rem;color:#9ca3af}
+    .field-error{font-size:.74rem;color:#ef4444;margin-top:4px;display:none}
+    .field-error.show{display:block}
+    .check-row{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+    .check-row input[type=checkbox]{width:16px;height:16px;accent-color:#10b981;flex-shrink:0}
+    .check-row label{font-size:.82rem;color:#6b7280}
+    .check-row a{color:#10b981;font-weight:600;text-decoration:none}
+    .meta-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .meta-row label{font-size:.82rem;color:#6b7280;display:flex;align-items:center;gap:6px}
+    .meta-row input[type=checkbox]{accent-color:#10b981}
+    .forgot-link{font-size:.82rem;color:#ef4444;font-weight:600;text-decoration:none;cursor:pointer}
+    .forgot-link:hover{text-decoration:underline}
+    .alert{padding:11px 14px;border-radius:10px;margin-bottom:14px;font-size:.85rem;
+      display:none;align-items:center;gap:8px}
+    .alert.show{display:flex}
+    .alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+    .alert-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+    .btn{width:100%;padding:13px;border:none;border-radius:30px;font-size:1rem;
+      font-weight:700;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);
+      color:#fff;transition:.25s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(16,185,129,.4)}
+    .btn:disabled{opacity:.65;cursor:not-allowed;transform:none}
+    .spinner{width:17px;height:17px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+      border-radius:50%;animation:spin .7s linear infinite;display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .pwd-strength{margin-top:8px;display:none}
+    .strength-bars{display:flex;gap:4px;margin-bottom:5px}
+    .sbar{flex:1;height:4px;border-radius:2px;background:#e5e7eb;transition:.3s}
+    .strength-label{font-size:.74rem;font-weight:700}
+    .strength-label.weak{color:#ef4444}.strength-label.fair{color:#f59e0b}
+    .strength-label.good{color:#3b82f6}.strength-label.strong{color:#10b981}
+    .rules{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}
+    .rules li{font-size:.72rem;display:flex;align-items:center;gap:5px;color:#9ca3af;transition:.2s}
+    .rules li.ok{color:#10b981}
+    .rules li .dot{width:13px;height:13px;border-radius:50%;background:#e5e7eb;display:flex;
+      align-items:center;justify-content:center;font-size:.55rem;flex-shrink:0;transition:.2s}
+    .rules li.ok .dot{background:#10b981;color:#fff}
+    .footer-link{text-align:center;font-size:.85rem;color:#6b7280;margin-top:16px}
+    .footer-link a,.footer-link span.link{color:#10b981;font-weight:600;text-decoration:none;cursor:pointer}
+    .footer-link a:hover,.footer-link span.link:hover{text-decoration:underline}
+
+    /* WELCOME */
+    #page-welcome .wlc-logo{display:flex;align-items:center;gap:10px;margin-bottom:36px}
+    #page-welcome .wlc-logo span.icon{font-size:2rem}
+    #page-welcome .wlc-logo span.name{font-size:1.1rem;font-weight:800;color:#111}
+    #page-welcome .badge-pill{background:#f3f4f6;border:1px solid #e5e7eb;color:#6b7280;
+      border-radius:20px;padding:5px 16px;font-size:.75rem;font-weight:600;letter-spacing:.06em;
+      margin-bottom:20px;display:inline-block}
+    #page-welcome h1{font-size:2.6rem;font-weight:900;color:#111;margin-bottom:8px;text-align:center}
+    #page-welcome p{color:#6b7280;font-size:.95rem;margin-bottom:36px;text-align:center}
+    .role-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%}
+    .role-card{background:#fff;border:2px solid #e5e7eb;border-radius:18px;padding:28px 22px;
+      cursor:pointer;transition:.25s;text-align:left}
+    .role-card:hover{border-color:#10b981;box-shadow:0 8px 28px rgba(16,185,129,.15);transform:translateY(-2px)}
+    .role-card .card-icon{font-size:2rem;margin-bottom:14px}
+    .role-card h3{font-size:1.05rem;font-weight:800;color:#111;margin-bottom:8px}
+    .role-card p{font-size:.82rem;color:#6b7280;line-height:1.5;margin-bottom:14px}
+    .role-card .card-link{font-size:.83rem;font-weight:700;color:#f43f5e;display:flex;align-items:center;gap:4px}
+    .role-card.hr-card .card-link{color:#10b981}
+    .fp-icon{font-size:2.5rem;margin-bottom:12px;text-align:center}
+    .fp-desc{color:#6b7280;font-size:.87rem;line-height:1.6;margin-bottom:22px;text-align:center}
+
+    /* APPLICANT pink */
+    #page-applicant-login .tab-btn.active,
+    #page-applicant-register .tab-btn.active{background:linear-gradient(135deg,#be185d,#be185d);box-shadow:0 2px 10px rgba(241,123,217,.35)}
+    #page-applicant-login .form-group input:focus,
+    #page-applicant-register .form-group input:focus{border-color:#f06292;box-shadow:0 0 0 4px rgba(240,98,146,.1)}
+    #page-applicant-login .form-group input.valid,
+    #page-applicant-register .form-group input.valid{border-color:#f06292}
+    #page-applicant-login .btn,
+    #page-applicant-register .btn{background:linear-gradient(135deg,#f06292,#ec407a)}
+    #page-applicant-login .btn:hover,
+    #page-applicant-register .btn:hover{box-shadow:0 6px 20px rgba(240,98,146,.4)}
+    #page-applicant-login .badge,
+    #page-applicant-register .badge{background:#fdf2f8;border-color:#f9a8d4;color:#be185d}
+    #page-applicant-login .badge .dot,
+    #page-applicant-register .badge .dot{background:#ec4899}
+    #page-applicant-login .forgot-link{color:#f06292}
+    #page-applicant-login .footer-link a,
+    #page-applicant-register .footer-link a{color:#f06292}
+  </style>
+</head>
+<body>
+
+<!-- WELCOME -->
+<div class="page active" id="page-welcome">
+  <div class="wlc-logo">
+    <span class="icon">💼</span>
+    <span class="name">Job Tracker</span>
+  </div>
+  <span class="badge-pill">YOUR CAREER, ORGANIZED.</span>
+  <h1>Welcome Back</h1>
+  <p>Choose your role to get started</p>
+  <div class="role-cards">
+    <div class="role-card" onclick="goto('page-applicant-login')">
+      <div class="card-icon">🎯</div>
+      <h3>I'm an Applicant</h3>
+      <p>Track your applications, monitor interviews, and land your dream job.</p>
+      <div class="card-link">Get Started →</div>
+    </div>
+    <div class="role-card hr-card" onclick="goto('page-hr-login')">
+      <div class="card-icon">🏢</div>
+      <h3>I'm an HR Manager</h3>
+      <p>Review candidates, manage pipelines, and make great hiring decisions.</p>
+      <div class="card-link">Get Started →</div>
+    </div>
+  </div>
+</div>
+
+<!-- APPLICANT LOGIN -->
+<div class="page" id="page-applicant-login">
+  <div class="card">
+    <div class="topbar">
+      <button class="back-btn" onclick="goto('page-welcome')">← Back</button>
+      <div class="logo-wrap"><span class="icon">💼</span> Job Tracker</div>
+    </div>
+    <div style="text-align:center">
+      <div class="badge"><span class="dot"></span>APPLICANT PORTAL</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="tab-btn active">Sign In</button>
+      <button class="tab-btn" onclick="goto('page-applicant-register')">Sign Up</button>
+    </div>
+    <div class="form-heading">Welcome back</div>
+    <div class="form-sub">Sign in to your applicant dashboard</div>
+    <div class="alert alert-error" id="al-login-app"><span>⚠️</span><span id="al-login-app-msg"></span></div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="icon">📧</span>
+        <input type="email" id="al-email" placeholder="you@email.com"/>
+      </div>
+      <div class="field-error" id="al-email-err">Please enter a valid email.</div>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="icon">🔒</span>
+        <input type="password" id="al-pass" placeholder="Enter your password"/>
+        <button class="eye-btn" type="button" onclick="toggleEye('al-pass',this)">👁️</button>
+      </div>
+      <div class="field-error" id="al-pass-err">Password must be at least 6 characters.</div>
+    </div>
+    <div class="meta-row">
+      <label><input type="checkbox"> Remember me</label>
+      <span class="forgot-link" onclick="openForgot('applicant')">Forgot password?</span>
+    </div>
+    <button class="btn" onclick="handleLogin('applicant')">
+      <span id="al-btn-text">Sign In →</span>
+      <div class="spinner" id="al-spinner"></div>
+    </button>
+    <div class="footer-link" style="margin-top:14px">New here? <span class="link" onclick="goto('page-applicant-register')">Register here →</span></div>
+  </div>
+</div>
+
+<!-- APPLICANT FORGOT PASSWORD -->
+<div class="page" id="page-applicant-forgot">
+  <div class="card">
+    <div class="topbar">
+      <button class="back-btn" onclick="goto('page-applicant-login')">← Back</button>
+      <div class="logo-wrap"><span class="icon">💼</span> Job Tracker</div>
+    </div>
+    <div style="text-align:center">
+      <div class="fp-icon">🔑</div>
+      <div class="form-heading">Forgot Password?</div>
+      <div class="fp-desc">Enter your registered email and we'll send you a password reset link.</div>
+    </div>
+    <div class="alert alert-error" id="al-afp-err"><span>⚠️</span><span id="al-afp-err-msg"></span></div>
+    <div class="alert alert-success" id="al-afp-ok"><span>✅</span><span id="al-afp-ok-msg"></span></div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="icon">📧</span>
+        <input type="email" id="afp-email" placeholder="you@email.com"/>
+      </div>
+      <div class="field-error" id="afp-email-err">Please enter a valid email.</div>
+    </div>
+    <button class="btn" style="background:linear-gradient(135deg,#f06292,#ec407a)" onclick="handleForgot('applicant')">
+      <span id="afp-btn-text">Send Reset Link →</span>
+      <div class="spinner" id="afp-spinner"></div>
+    </button>
+    <div class="footer-link" style="margin-top:14px"><span class="link" onclick="goto('page-applicant-login')">← Back to Sign In</span></div>
+  </div>
+</div>
+
+<!-- APPLICANT REGISTER -->
+<div class="page" id="page-applicant-register">
+  <div class="card">
+    <div class="topbar">
+      <button class="back-btn" onclick="goto('page-welcome')">← Back</button>
+      <div class="logo-wrap"><span class="icon">💼</span> Job Tracker</div>
+    </div>
+    <div style="text-align:center">
+      <div class="badge"><span class="dot"></span>APPLICANT PORTAL</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="tab-btn" onclick="goto('page-applicant-login')">Sign In</button>
+      <button class="tab-btn active">Sign Up</button>
+    </div>
+    <div class="form-heading">Create account</div>
+    <div class="form-sub">Start tracking your job applications today</div>
+    <div class="alert alert-error" id="al-areg"><span>⚠️</span><span id="al-areg-msg"></span></div>
+    <div class="alert alert-success" id="al-areg-ok"><span>✅</span><span id="al-areg-ok-msg"></span></div>
+    <div class="form-group">
+      <label>Full Name</label>
+      <div class="input-wrap">
+        <span class="icon">👤</span>
+        <input type="text" id="ar-name" placeholder="John Doe"/>
+      </div>
+      <div class="field-error" id="ar-name-err">Full name is required.</div>
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <span class="icon">📧</span>
+        <input type="email" id="ar-email" placeholder="your@email.com"/>
+      </div>
+      <div class="field-error" id="ar-email-err">Please enter a valid email.</div>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="icon">🔒</span>
+        <input type="password" id="ar-pass" placeholder="Create a strong password" oninput="strengthCheck(this,'ar-strength')"/>
+        <button class="eye-btn" type="button" onclick="toggleEye('ar-pass',this)">👁️</button>
+      </div>
+      <div class="field-error" id="ar-pass-err">Password must meet all requirements.</div>
+      <div class="pwd-strength" id="ar-strength">
+        <div class="strength-bars">
+          <div class="sbar" id="ar-sb1"></div><div class="sbar" id="ar-sb2"></div>
+          <div class="sbar" id="ar-sb3"></div><div class="sbar" id="ar-sb4"></div>
+        </div>
+        <span class="strength-label" id="ar-slbl"></span>
+        <ul class="rules">
+          <li id="ar-r-len"><span class="dot">✓</span>Min 8 chars</li>
+          <li id="ar-r-upper"><span class="dot">✓</span>Uppercase</li>
+          <li id="ar-r-lower"><span class="dot">✓</span>Lowercase</li>
+          <li id="ar-r-num"><span class="dot">✓</span>Number</li>
+          <li id="ar-r-sym"><span class="dot">✓</span>Symbol</li>
+        </ul>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Confirm Password</label>
+      <div class="input-wrap">
+        <span class="icon">🔑</span>
+        <input type="password" id="ar-confirm" placeholder="Re-enter your password"/>
+      </div>
+      <div class="field-error" id="ar-confirm-err">Passwords do not match.</div>
+    </div>
+    <button class="btn" onclick="handleRegister('applicant')">
+      <span id="ar-btn-text">Create Account →</span>
+      <div class="spinner" id="ar-spinner"></div>
+    </button>
+    <div class="footer-link" style="margin-top:14px">Already registered? <span class="link" onclick="goto('page-applicant-login')">Sign in →</span></div>
+  </div>
+</div>
+
+<!-- HR LOGIN -->
+<div class="page" id="page-hr-login">
+  <div class="card">
+    <div class="topbar">
+      <button class="back-btn" onclick="goto('page-welcome')">← Back</button>
+      <div class="logo-wrap"><span class="icon">💼</span> Job Tracker</div>
+    </div>
+    <div style="text-align:center">
+      <div class="badge hr"><span class="dot"></span>HR MANAGER PORTAL</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="tab-btn active">Sign In</button>
+      <button class="tab-btn" onclick="goto('page-hr-register')">Sign Up</button>
+    </div>
+    <div class="form-heading">Welcome back</div>
+    <div class="form-sub">Sign in to your HR dashboard</div>
+    <div class="alert alert-error" id="al-login-hr"><span>⚠️</span><span id="al-login-hr-msg"></span></div>
+    <div class="form-group">
+      <label>Work Email</label>
+      <div class="input-wrap">
+        <span class="icon">📧</span>
+        <input type="email" id="hl-email" placeholder="hr@company.com"/>
+      </div>
+      <div class="field-error" id="hl-email-err">Please enter a valid email.</div>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="icon">🔒</span>
+        <input type="password" id="hl-pass" placeholder="Enter your password"/>
+        <button class="eye-btn" type="button" onclick="toggleEye('hl-pass',this)">👁️</button>
+      </div>
+      <div class="field-error" id="hl-pass-err">Password must be at least 6 characters.</div>
+    </div>
+    <div class="meta-row">
+      <label><input type="checkbox"> Remember me</label>
+      <span class="forgot-link" onclick="openForgot('hr')">Forgot password?</span>
+    </div>
+    <button class="btn" onclick="handleLogin('hr')">
+      <span id="hl-btn-text">Sign In →</span>
+      <div class="spinner" id="hl-spinner"></div>
+    </button>
+    <div class="footer-link" style="margin-top:14px">New HR member? <span class="link" onclick="goto('page-hr-register')">Register here →</span></div>
+  </div>
+</div>
+
+<!-- HR FORGOT PASSWORD -->
+<div class="page" id="page-hr-forgot">
+  <div class="card">
+    <div class="topbar">
+      <button class="back-btn" onclick="goto('page-hr-login')">← Back</button>
+      <div class="logo-wrap"><span class="icon">💼</span> Job Tracker</div>
+    </div>
+    <div style="text-align:center">
+      <div class="fp-icon">🔑</div>
+      <div class="form-heading">Forgot Password?</div>
+      <div class="fp-desc">Enter your registered work email and we'll send a password reset link.</div>
+    </div>
+    <div class="alert alert-error" id="al-hfp-err"><span>⚠️</span><span id="al-hfp-err-msg"></span></div>
+    <div class="alert alert-success" id="al-hfp-ok"><span>✅</span><span id="al-hfp-ok-msg"></span></div>
+    <div class="form-group">
+      <label>Work Email</label>
+      <div class="input-wrap">
+        <span class="icon">📧</span>
+        <input type="email" id="hfp-email" placeholder="hr@company.com"/>
+      </div>
+      <div class="field-error" id="hfp-email-err">Please enter a valid email.</div>
+    </div>
+    <button class="btn" onclick="handleForgot('hr')">
+      <span id="hfp-btn-text">Send Reset Link →</span>
+      <div class="spinner" id="hfp-spinner"></div>
+    </button>
+    <div class="footer-link" style="margin-top:14px"><span class="link" onclick="goto('page-hr-login')">← Back to Sign In</span></div>
+  </div>
+</div>
+
+<!-- HR REGISTER -->
+<div class="page" id="page-hr-register">
+  <div class="card">
+    <div class="topbar">
+      <button class="back-btn" onclick="goto('page-welcome')">← Back</button>
+      <div class="logo-wrap"><span class="icon">💼</span> Job Tracker</div>
+    </div>
+    <div style="text-align:center">
+      <div class="badge hr"><span class="dot"></span>HR MANAGER PORTAL</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="tab-btn" onclick="goto('page-hr-login')">Sign In</button>
+      <button class="tab-btn active">Sign Up</button>
+    </div>
+    <div class="form-heading">Create account</div>
+    <div class="form-sub">Register as an HR Manager</div>
+    <div class="alert alert-error" id="al-hrreg"><span>⚠️</span><span id="al-hrreg-msg"></span></div>
+    <div class="alert alert-success" id="al-hrreg-ok"><span>✅</span><span id="al-hrreg-ok-msg"></span></div>
+    <div class="row-2">
+      <div class="form-group">
+        <label>First Name</label>
+        <div class="input-wrap">
+          <span class="icon">👤</span>
+          <input type="text" id="hr-fname" placeholder="Sarah"/>
+        </div>
+        <div class="field-error" id="hr-fname-err">Required.</div>
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <div class="input-wrap">
+          <span class="icon">👤</span>
+          <input type="text" id="hr-lname" placeholder="Mitchell"/>
+        </div>
+        <div class="field-error" id="hr-lname-err">Required.</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Work Email</label>
+      <div class="input-wrap">
+        <span class="icon">📧</span>
+        <input type="email" id="hr-email" placeholder="hr@company.com"/>
+      </div>
+      <div class="field-error" id="hr-email-err">Please enter a valid email.</div>
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label>Company Name</label>
+        <div class="input-wrap">
+          <span class="icon">🏢</span>
+          <input type="text" id="hr-company" placeholder="Acme Corp"/>
+        </div>
+        <div class="field-error" id="hr-company-err">Required.</div>
+      </div>
+      <div class="form-group">
+        <label>Employee ID</label>
+        <div class="input-wrap">
+          <span class="icon">🪪</span>
+          <input type="text" id="hr-empid" placeholder="EMP-1042"/>
+        </div>
+        <div class="field-error" id="hr-empid-err">Required.</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Department</label>
+      <div class="input-wrap">
+        <span class="icon">👥</span>
+        <select id="hr-dept">
+          <option value="">Select department</option>
+          <option>Human Resources</option>
+          <option>Engineering</option>
+          <option>Product</option>
+          <option>Design</option>
+          <option>Marketing</option>
+          <option>Sales</option>
+          <option>Finance</option>
+          <option>Operations</option>
+          <option>Legal</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field-error" id="hr-dept-err">Please select a department.</div>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="icon">🔒</span>
+        <input type="password" id="hr-pass" placeholder="Min. 8 characters" oninput="strengthCheck(this,'hr-strength')"/>
+        <button class="eye-btn" type="button" onclick="toggleEye('hr-pass',this)">👁️</button>
+      </div>
+      <div class="field-error" id="hr-pass-err">Password must meet all requirements.</div>
+      <div class="pwd-strength" id="hr-strength">
+        <div class="strength-bars">
+          <div class="sbar" id="hr-sb1"></div><div class="sbar" id="hr-sb2"></div>
+          <div class="sbar" id="hr-sb3"></div><div class="sbar" id="hr-sb4"></div>
+        </div>
+        <span class="strength-label" id="hr-slbl"></span>
+        <ul class="rules">
+          <li id="hr-r-len"><span class="dot">✓</span>Min 8 chars</li>
+          <li id="hr-r-upper"><span class="dot">✓</span>Uppercase</li>
+          <li id="hr-r-lower"><span class="dot">✓</span>Lowercase</li>
+          <li id="hr-r-num"><span class="dot">✓</span>Number</li>
+          <li id="hr-r-sym"><span class="dot">✓</span>Symbol</li>
+        </ul>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Confirm Password</label>
+      <div class="input-wrap">
+        <span class="icon">🔑</span>
+        <input type="password" id="hr-confirm" placeholder="Repeat password"/>
+      </div>
+      <div class="field-error" id="hr-confirm-err">Passwords do not match.</div>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="hr-terms"/>
+      <label for="hr-terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+    </div>
+    <div class="field-error" id="hr-terms-err" style="margin-top:-10px;margin-bottom:12px">You must agree to the terms.</div>
+    <button class="btn" id="hr-register-btn" onclick="handleRegister('hr')">
+      <span id="hr-btn-text">Create Account →</span>
+      <div class="spinner" id="hr-spinner"></div>
+    </button>
+    <div class="footer-link" style="margin-top:14px">Already registered? <span class="link" onclick="goto('page-hr-login')">Sign in →</span></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════
+   PAGE NAVIGATION
+══════════════════════════════ */
+function goto(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function openForgot(role) {
+  goto(role === 'hr' ? 'page-hr-forgot' : 'page-applicant-forgot');
+}
+
+/* ══════════════════════════════
+   HELPERS
+══════════════════════════════ */
+function toggleEye(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'text' ? '🙈' : '👁️';
+}
+function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const span = el.querySelector('span:last-child');
+  if (span) span.textContent = msg;
+  el.classList.add('show');
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+function setField(inputId, errId, ok, msg = '') {
+  const inp = document.getElementById(inputId);
+  const err = document.getElementById(errId);
+  if (!inp) return;
+  inp.classList.toggle('error', !ok);
+  inp.classList.toggle('valid', ok);
+  if (err) { err.textContent = msg; err.classList.toggle('show', !ok); }
+}
+function setBtnLoading(textId, spinnerId, btnEl, loading) {
+  const t = document.getElementById(textId);
+  const s = document.getElementById(spinnerId);
+  if (t) t.style.display = loading ? 'none' : '';
+  if (s) s.style.display = loading ? 'block' : 'none';
+  if (btnEl) btnEl.disabled = loading;
+}
+
+/* ══════════════════════════════
+   PASSWORD STRENGTH
+══════════════════════════════ */
+function strengthCheck(inp, prefix) {
+  const pwd = inp.value;
+  const box = document.getElementById(prefix);
+  if (box) box.style.display = pwd ? 'block' : 'none';
+  const pfxBase = prefix.replace('-strength', '');
+  const rules = {
+    len:   pwd.length >= 8,
+    upper: /[A-Z]/.test(pwd),
+    lower: /[a-z]/.test(pwd),
+    num:   /[0-9]/.test(pwd),
+    sym:   /[^A-Za-z0-9]/.test(pwd)
+  };
+  const score = Object.values(rules).filter(Boolean).length;
+  Object.entries(rules).forEach(([k, ok]) => {
+    const li = document.getElementById(pfxBase + '-r-' + k);
+    if (li) li.classList.toggle('ok', ok);
+  });
+  const colors = ['','#ef4444','#f59e0b','#3b82f6','#10b981','#10b981'];
+  const labels = ['','Weak','Fair','Good','Strong','Very Strong'];
+  const cls    = ['','weak','fair','good','strong','strong'];
+  for (let i = 1; i <= 4; i++) {
+    const sb = document.getElementById(pfxBase + '-sb' + i);
+    if (sb) sb.style.background = i <= score ? colors[score] : '#e5e7eb';
+  }
+  const lbl = document.getElementById(pfxBase + '-slbl');
+  if (lbl) { lbl.textContent = pwd ? labels[score] : ''; lbl.className = 'strength-label ' + (pwd ? cls[score] : ''); }
+  return rules;
+}
+function getRules(pfxBase) {
+  const pwd = (document.getElementById(pfxBase + '-pass') || {}).value || '';
+  return {
+    len:   pwd.length >= 8,
+    upper: /[A-Z]/.test(pwd),
+    lower: /[a-z]/.test(pwd),
+    num:   /[0-9]/.test(pwd),
+    sym:   /[^A-Za-z0-9]/.test(pwd)
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOGIN
+   Posts JSON to Flask /login route.
+   Flask returns { success, redirect, role } or { success:false, message }
+   On success → follow the redirect URL returned by Flask.
+   ✅ Applicant  → Flask sends redirect to  /          (index.html)
+   ✅ HR Manager → Flask sends redirect to  /hr/dashboard
+══════════════════════════════════════════════════════════════ */
+async function handleLogin(role) {
+  const isHR  = role === 'hr';
+  const pfx   = isHR ? 'hl' : 'al';
+  const errId = 'al-login-' + (isHR ? 'hr' : 'app');
+  hideAlert(errId);
+
+  const email = document.getElementById(pfx + '-email').value.trim();
+  const pass  = document.getElementById(pfx + '-pass').value;
+  let valid = true;
+
+  if (!isEmail(email)) {
+    setField(pfx + '-email', pfx + '-email-err', false, 'Please enter a valid email.');
+    valid = false;
+  } else {
+    setField(pfx + '-email', pfx + '-email-err', true);
+  }
+  if (pass.length < 6) {
+    setField(pfx + '-pass', pfx + '-pass-err', false, 'Password must be at least 6 characters.');
+    valid = false;
+  } else {
+    setField(pfx + '-pass', pfx + '-pass-err', true);
+  }
+  if (!valid) return;
+
+  const btn = document.querySelector('#page-' + (isHR ? 'hr' : 'applicant') + '-login .btn');
+  setBtnLoading(pfx + '-btn-text', pfx + '-spinner', btn, true);
+
+  try {
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, role })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      // Flask tells us exactly where to go — follow it
+      window.location.href = data.redirect;
+    } else {
+      showAlert(errId, data.message || 'Invalid credentials. Please try again.');
+      setBtnLoading(pfx + '-btn-text', pfx + '-spinner', btn, false);
+    }
+  } catch (err) {
+    showAlert(errId, 'Network error. Please try again.');
+    setBtnLoading(pfx + '-btn-text', pfx + '-spinner', btn, false);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REGISTER
+   Posts JSON to Flask /register route.
+   Flask returns { success, redirect } or { success:false, message }
+   On success → show success message, then redirect to login tab.
+   HR extra fields (company, empid, dept) are stored in the name
+   field as a combined string so they reach the Flask User model.
+══════════════════════════════════════════════════════════════ */
+async function handleRegister(role) {
+  const isHR  = role === 'hr';
+  const errId = isHR ? 'al-hrreg'    : 'al-areg';
+  const okId  = isHR ? 'al-hrreg-ok' : 'al-areg-ok';
+  hideAlert(errId);
+  hideAlert(okId);
+
+  let valid = true;
+  let payload = { role };
+
+  /* ── HR validation ── */
+  if (isHR) {
+    const fname   = document.getElementById('hr-fname').value.trim();
+    const lname   = document.getElementById('hr-lname').value.trim();
+    const email   = document.getElementById('hr-email').value.trim();
+    const company = document.getElementById('hr-company').value.trim();
+    const empid   = document.getElementById('hr-empid').value.trim();
+    const dept    = document.getElementById('hr-dept').value;
+    const pass    = document.getElementById('hr-pass').value;
+    const confirm = document.getElementById('hr-confirm').value;
+    const terms   = document.getElementById('hr-terms').checked;
+
+    if (!fname) { setField('hr-fname','hr-fname-err',false,'First name is required.'); valid=false; } else setField('hr-fname','hr-fname-err',true);
+    if (!lname) { setField('hr-lname','hr-lname-err',false,'Last name is required.');  valid=false; } else setField('hr-lname','hr-lname-err',true);
+    if (!isEmail(email)) { setField('hr-email','hr-email-err',false,'Please enter a valid email.'); valid=false; } else setField('hr-email','hr-email-err',true);
+    if (!company) { setField('hr-company','hr-company-err',false,'Company name is required.'); valid=false; } else setField('hr-company','hr-company-err',true);
+    if (!empid)   { setField('hr-empid','hr-empid-err',false,'Employee ID is required.');    valid=false; } else setField('hr-empid','hr-empid-err',true);
+
+    const deptErr = document.getElementById('hr-dept-err');
+    if (!dept) { deptErr && deptErr.classList.add('show'); valid=false; } else { deptErr && deptErr.classList.remove('show'); }
+
+    const r = getRules('hr');
+    if (!(r.len && r.upper && r.lower && r.num && r.sym)) { setField('hr-pass','hr-pass-err',false,'Password must have 8+ chars, uppercase, lowercase, number & symbol.'); valid=false; } else setField('hr-pass','hr-pass-err',true);
+    if (pass !== confirm) { setField('hr-confirm','hr-confirm-err',false,'Passwords do not match.'); valid=false; } else setField('hr-confirm','hr-confirm-err',true);
+
+    const termsErr = document.getElementById('hr-terms-err');
+    if (!terms) { termsErr && termsErr.classList.add('show'); valid=false; } else { termsErr && termsErr.classList.remove('show'); }
+
+    if (!valid) return;
+    // Combine into name field for Flask User model (name is the only name field)
+    payload = { role, name: fname + ' ' + lname, email, password: pass };
+
+  /* ── Applicant validation ── */
+  } else {
+    const name    = document.getElementById('ar-name').value.trim();
+    const email   = document.getElementById('ar-email').value.trim();
+    const pass    = document.getElementById('ar-pass').value;
+    const confirm = document.getElementById('ar-confirm').value;
+
+    if (name.length < 2) { setField('ar-name','ar-name-err',false,'Full name is required.'); valid=false; } else setField('ar-name','ar-name-err',true);
+    if (!isEmail(email)) { setField('ar-email','ar-email-err',false,'Please enter a valid email.'); valid=false; } else setField('ar-email','ar-email-err',true);
+
+    const r = getRules('ar');
+    if (!(r.len && r.upper && r.lower && r.num && r.sym)) { setField('ar-pass','ar-pass-err',false,'Password must have 8+ chars, uppercase, lowercase, number & symbol.'); valid=false; } else setField('ar-pass','ar-pass-err',true);
+    if (pass !== confirm) { setField('ar-confirm','ar-confirm-err',false,'Passwords do not match.'); valid=false; } else setField('ar-confirm','ar-confirm-err',true);
+
+    if (!valid) return;
+    payload = { role, name, email, password: pass };
+  }
+
+  /* ── POST to Flask /register ── */
+  const btnTextId = isHR ? 'hr-btn-text' : 'ar-btn-text';
+  const spinnerId = isHR ? 'hr-spinner'  : 'ar-spinner';
+  const pageBtn   = document.getElementById(isHR ? 'hr-register-btn' : null) ||
+                    document.querySelector('#page-' + (isHR ? 'hr' : 'applicant') + '-register .btn');
+  setBtnLoading(btnTextId, spinnerId, pageBtn, true);
+
+  try {
+    const res  = await fetch('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      // Registration also logs in via Flask session — go straight to dashboard
+      window.location.href = data.redirect;
+    } else {
+      showAlert(errId, data.message || 'Registration failed. Please try again.');
+      setBtnLoading(btnTextId, spinnerId, pageBtn, false);
+    }
+  } catch (err) {
+    showAlert(errId, 'Network error. Please try again.');
+    setBtnLoading(btnTextId, spinnerId, pageBtn, false);
+  }
+}
+
+/* ══════════════════════════════
+   FORGOT PASSWORD (UI only)
+══════════════════════════════ */
+async function handleForgot(role) {
+  const isHR = role === 'hr';
+  const pfx  = isHR ? 'hfp' : 'afp';
+  hideAlert('al-' + pfx + '-err');
+  hideAlert('al-' + pfx + '-ok');
+
+  const email = document.getElementById(pfx + '-email').value.trim();
+  if (!isEmail(email)) {
+    setField(pfx + '-email', pfx + '-email-err', false, 'Please enter a valid email.');
+    return;
+  }
+  setField(pfx + '-email', pfx + '-email-err', true);
+
+  const btn = document.querySelector('#page-' + (isHR ? 'hr' : 'applicant') + '-forgot .btn');
+  setBtnLoading(pfx + '-btn-text', pfx + '-spinner', btn, true);
+
+  await new Promise(r => setTimeout(r, 800));
+  showAlert('al-' + pfx + '-ok', `If an account exists for ${email}, a reset link has been sent to your inbox.`);
+  document.getElementById(pfx + '-email').value = '';
+  document.getElementById(pfx + '-email').classList.remove('error','valid');
+  setBtnLoading(pfx + '-btn-text', pfx + '-spinner', btn, false);
+}
+</script>
+</body>
+</html>

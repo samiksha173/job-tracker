@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% set active = 'jobs' %}
+{% block title %}Find Jobs — HireBloom{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="greeting-chip">🔍 Discover Opportunities</div>
+  <h1>Find Jobs</h1>
+  <p>Search across LinkedIn, Indeed, Glassdoor, Naukri, Unstop, Internshala & more.</p>
+</div>
+
+<!-- Search Bar -->
+<div class="job-search-bar">
+  <input type="text" id="jobQuery" placeholder="Job title, skills, company…"/>
+  <input type="text" id="jobLoc" placeholder="Location (e.g. Mumbai, Pune, Remote)"/>
+  <button class="btn-primary" onclick="searchJobs()">🔍 Search Jobs</button>
+</div>
+
+<!-- Source Filters -->
+<div class="job-filters">
+  <span>Source:</span>
+  <button class="src-btn active" data-src="all" onclick="setSrc(this)">🌐 All</button>
+  <button class="src-btn" data-src="linkedin" onclick="setSrc(this)">💼 LinkedIn</button>
+  <button class="src-btn" data-src="indeed" onclick="setSrc(this)">🔎 Indeed</button>
+  <button class="src-btn" data-src="glassdoor" onclick="setSrc(this)">🏢 Glassdoor</button>
+  <button class="src-btn" data-src="naukri" onclick="setSrc(this)">🇮🇳 Naukri</button>
+  <button class="src-btn" data-src="unstop" onclick="setSrc(this)">🎯 Unstop</button>
+  <button class="src-btn" data-src="internshala" onclick="setSrc(this)">🎓 Internshala</button>
+  <select class="filter-select" id="jobType" style="margin-left:auto">
+    <option value="">All Types</option>
+    <option>Full-Time</option>
+    <option>Part-Time</option>
+    <option>Internship</option>
+  </select>
+</div>
+
+<!-- Results -->
+<div class="section-header" style="margin-top:4px">
+  <h2 id="results-heading">Jobs</h2>
+  <span id="results-count" style="font-size:.8rem;color:var(--text3)"></span>
+</div>
+
+<div id="jobResults">
+  <div class="empty-search">
+    <p>💼</p>
+    <p>Search for jobs above and results will appear here</p>
+    <p style="font-size:.76rem;margin-top:6px;color:var(--text3)">LinkedIn · Indeed · Glassdoor · Naukri · Unstop · Internshala</p>
+  </div>
+</div>
+
+<div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedSrc = 'all';
+
+function setSrc(btn) {
+  document.querySelectorAll('.src-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSrc = btn.dataset.src;
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function searchJobs() {
+  const q = document.getElementById('jobQuery').value.trim();
+  const loc = document.getElementById('jobLoc').value.trim();
+  const jtype = document.getElementById('jobType').value;
+  if (!q) { showToast('Please enter a search query','error'); return; }
+
+  document.getElementById('jobResults').innerHTML = '<p class="loading">Searching across job boards…</p>';
+  document.getElementById('results-count').textContent = '';
+
+  try {
+    const params = new URLSearchParams({ q, location: loc, source: selectedSrc, type: jtype });
+    const res = await fetch('/api/jobs/search?' + params);
+    const data = await res.json();
+    const el = document.getElementById('jobResults');
+
+    if (!data.results || !data.results.length) {
+      el.innerHTML = `<div class="section-card"><p class="empty" style="padding:40px">No results found for "<strong>${escHtml(q)}</strong>". Try different keywords or location.</p></div>`;
+      document.getElementById('results-count').textContent = '0 results';
+      return;
+    }
+
+    document.getElementById('results-count').textContent = `${data.results.length} result${data.results.length!==1?'s':''}`;
+    el.innerHTML = data.results.map((j,i)=>`
+      <div class="job-card" style="animation-delay:${i*0.05}s">
+        <div class="job-header">
+          <span class="job-source src-${(j.source||'other').toLowerCase()}">${escHtml(j.source)}</span>
+          <span class="job-type-badge">${escHtml(j.type||'Full-Time')}</span>
+        </div>
+        <h3>${escHtml(j.title)}</h3>
+        <p>🏢 ${escHtml(j.company||'')}</p>
+        <p>📍 ${escHtml(j.location||'')}</p>
+        ${j.salary?`<p>💰 ${escHtml(j.salary)}</p>`:''}
+        ${j.posted?`<p style="font-size:.74rem;color:var(--text3)">🕐 Posted: ${escHtml(j.posted)}</p>`:''}
+        <div class="job-actions" style="margin-top:10px">
+          <a href="${escHtml(j.url)}" target="_blank" class="btn-primary" style="padding:7px 18px;font-size:.82rem">View Job →</a>
+          <button onclick="quickApply(${JSON.stringify({company:j.company||'',title:j.title||''}).replace(/"/g,'&quot;')})" style="background:var(--pk50);border:1.5px solid var(--pk200);color:var(--pk600);padding:7px 14px;border-radius:20px;font-size:.82rem;font-weight:600;transition:.15s">+ Track Application</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('jobResults').innerHTML = '<div class="section-card"><p class="empty">Error fetching jobs. Please try again.</p></div>';
+  }
+}
+
+function quickApply(info) {
+  showToast(`Tracking application for ${info.title} at ${info.company} 🌸`, 'success');
+  // In real app: redirect to /application with prefilled values
+}
+
+document.getElementById('jobQuery').addEventListener('keydown', e => { if(e.key==='Enter') searchJobs(); });
+document.getElementById('jobLoc').addEventListener('keydown', e => { if(e.key==='Enter') searchJobs(); });
+</script>
+{% endblock %}

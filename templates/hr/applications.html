@@ -1,0 +1,121 @@
+{% extends "hr/base.html" %}
+{% block title %}Applications{% endblock %}
+{% block topbar_title %}All Applications{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📋 All Applications</h1>
+  <p>Review, filter and update the status of every application</p>
+</div>
+
+<!-- Filters -->
+<div class="hr-filters">
+  <input type="text" id="searchInp" placeholder="🔍 Search name, position, company…" oninput="loadApps()"/>
+  <select id="filterHRStatus" onchange="loadApps()">
+    <option value="">All HR Statuses</option>
+    <option>Pending</option><option>Eligible</option><option>Not Eligible</option>
+    <option>Interview</option><option>Hired</option><option>Rejected</option>
+  </select>
+  <select id="filterPos" onchange="loadApps()">
+    <option value="">All Positions</option>
+  </select>
+</div>
+
+<!-- Table -->
+<div class="hr-table-wrap">
+  <table class="hr-table" id="appsTable">
+    <thead>
+      <tr>
+        <th>#</th><th>Applicant</th><th>Position</th><th>Company</th>
+        <th>Type</th><th>Applied</th><th>HR Status</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="appsBody"><tr><td colspan="8" class="loading">Loading…</td></tr></tbody>
+  </table>
+</div>
+
+<!-- Inline Review Panel -->
+<div id="reviewPanel" class="review-panel hidden">
+  <div class="review-panel-inner">
+    <div class="rp-header">
+      <h3 id="rpTitle">Review Application</h3>
+      <button onclick="closeReview()">✕</button>
+    </div>
+    <div id="rpBody"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load positions for filter
+fetch('/hr/api/positions').then(r=>r.json()).then(pos=>{
+  const sel = document.getElementById('filterPos');
+  pos.forEach(p=>{ const o=document.createElement('option'); o.textContent=p; sel.appendChild(o); });
+});
+
+async function loadApps() {
+  const search = document.getElementById('searchInp').value;
+  const hr_status = document.getElementById('filterHRStatus').value;
+  const position  = document.getElementById('filterPos').value;
+  const params = new URLSearchParams({ search, hr_status, position });
+  const apps = await fetch('/hr/api/applications?'+params).then(r=>r.json());
+  const tbody = document.getElementById('appsBody');
+  if (!apps.length) { tbody.innerHTML='<tr><td colspan="8" class="empty">No applications found.</td></tr>'; return; }
+  tbody.innerHTML = apps.map((a,i)=>`
+    <tr class="app-tr">
+      <td>${i+1}</td>
+      <td>
+        <div class="ap-name">${a.applicant_name||'—'}</div>
+        <div class="ap-email">${a.applicant_email||''}</div>
+      </td>
+      <td>${a.position}</td>
+      <td>${a.company}</td>
+      <td><span class="badge badge-type">${a.job_type||'—'}</span></td>
+      <td>${a.application_date||'—'}</td>
+      <td><span class="hr-status-badge hrsb-${(a.hr_status||'pending').toLowerCase().replace(' ','-')}">${a.hr_status||'Pending'}</span></td>
+      <td class="td-actions">
+        <button class="btn-sm btn-primary" onclick='openReview(${JSON.stringify(a).replace(/'/g,"&#39;")})'>✏️ Review</button>
+        ${a.resume_filename ? `<a class="btn-sm btn-secondary" href="/api/resume/${a.resume_filename}" target="_blank">📄 Resume</a>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function openReview(a) {
+  document.getElementById('rpTitle').textContent = `${a.position} @ ${a.company} — ${a.applicant_name}`;
+  document.getElementById('rpBody').innerHTML = `
+    <div class="rp-info">
+      <p><strong>Applicant:</strong> ${a.applicant_name} (${a.applicant_email})</p>
+      <p><strong>Applied:</strong> ${a.application_date||'—'} &nbsp;|&nbsp; <strong>Type:</strong> ${a.job_type||'—'} &nbsp;|&nbsp; <strong>Location:</strong> ${a.location||'—'}</p>
+      ${a.salary?`<p><strong>Salary:</strong> ${a.salary}</p>`:''}
+      ${a.job_description?`<div class="rp-desc"><strong>Job Description:</strong><p>${a.job_description}</p></div>`:''}
+      ${a.notes?`<div class="rp-desc"><strong>Applicant Notes:</strong><p>${a.notes}</p></div>`:''}
+      ${a.resume_filename?`<p><a href="/api/resume/${a.resume_filename}" target="_blank" class="btn-primary btn-sm">📄 View Resume</a></p>`:'<p class="text-muted">No resume uploaded</p>'}
+    </div>
+    <div class="rp-review">
+      <label>HR Decision
+        <select id="rvStatus">
+          ${['Pending','Eligible','Not Eligible','Interview','Hired','Rejected'].map(s=>`<option${s===a.hr_status?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </label>
+      <label>HR Notes / Feedback
+        <textarea id="rvNotes" rows="4">${a.hr_notes||''}</textarea>
+      </label>
+      <button class="btn-primary" onclick="saveReview(${a.id})">💾 Save Decision</button>
+    </div>`;
+  document.getElementById('reviewPanel').classList.remove('hidden');
+}
+function closeReview(){ document.getElementById('reviewPanel').classList.add('hidden'); }
+
+async function saveReview(id) {
+  const res = await fetch(`/hr/api/applications/${id}/review`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ hr_status: document.getElementById('rvStatus').value, hr_notes: document.getElementById('rvNotes').value })
+  });
+  if (res.ok) { showToast('Decision saved!','success'); closeReview(); loadApps(); }
+  else showToast('Error','error');
+}
+
+loadApps();
+</script>
+{% endblock %}

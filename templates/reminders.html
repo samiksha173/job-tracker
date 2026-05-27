@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% set active = 'reminders' %}
+{% block title %}Reminders — HireBloom{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="greeting-chip">🔔 Stay Ahead</div>
+  <h1>Reminders</h1>
+  <p>Never miss a deadline, interview, or follow-up again.</p>
+</div>
+
+<!-- Stats Row -->
+<div class="stats-grid mini" style="margin-bottom:24px">
+  <div class="stat-card red">
+    <div class="stat-icon si-rose">🚨</div>
+    <div class="stat-body"><span class="stat-num" id="r-urgent">0</span><span class="stat-label">Urgent</span><span class="stat-sub">0–2 days away</span></div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="stat-icon si-amber">⏳</div>
+    <div class="stat-body"><span class="stat-num" id="r-week">0</span><span class="stat-label">This Week</span><span class="stat-sub">3–7 days away</span></div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon si-blue">🗓️</div>
+    <div class="stat-body"><span class="stat-num" id="r-later">0</span><span class="stat-label">Upcoming</span><span class="stat-sub">7+ days away</span></div>
+  </div>
+</div>
+
+<!-- Add Reminder Button -->
+<div class="section-header">
+  <h2>All Reminders</h2>
+  <button class="btn-primary" onclick="openAddForm()" style="padding:8px 20px;font-size:.82rem">＋ Add Reminder</button>
+</div>
+
+<!-- Add Form (collapsible) -->
+<div class="section-card hidden" id="add-rem-form" style="margin-bottom:18px">
+  <div class="section-header"><h2>New Reminder</h2><button class="link-all" onclick="closeAddForm()">✕ Close</button></div>
+  <div class="form-row">
+    <div><label class="form-label">Title *</label><input class="form-input" id="new-rem-title" placeholder="e.g. Follow up with TechNova HR"/></div>
+    <div><label class="form-label">Type</label>
+      <select class="form-input" id="new-rem-type">
+        <option value="interview">Interview</option>
+        <option value="deadline">Deadline</option>
+        <option value="follow-up">Follow-up</option>
+        <option value="offer">Offer Deadline</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div><label class="form-label">Date *</label><input class="form-input" type="date" id="new-rem-date"/></div>
+    <div><label class="form-label">Time (optional)</label><input class="form-input" type="time" id="new-rem-time"/></div>
+  </div>
+  <div><label class="form-label">Note</label><textarea class="form-input" id="new-rem-note" rows="2" placeholder="Additional details…" style="resize:vertical"></textarea></div>
+  <div class="form-actions">
+    <button class="btn-secondary" onclick="closeAddForm()">Cancel</button>
+    <button class="btn-primary" onclick="saveNewReminder()">📌 Save Reminder</button>
+  </div>
+</div>
+
+<div id="remList"><p class="loading">Loading reminders…</p></div>
+
+<div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
+
+{% endblock %}
+
+{% block head %}
+<style>
+.stats-grid.mini{grid-template-columns:repeat(3,1fr)}
+@media(max-width:600px){.stats-grid.mini{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadReminders() {
+  try{
+    const res = await fetch('/api/reminders');
+    const rems = await res.json();
+    const today = new Date(); today.setHours(0,0,0,0);
+    let urgent=0, week=0, later=0;
+    const el = document.getElementById('remList');
+    if (!rems.length) {
+      el.innerHTML='<div class="section-card"><p class="empty" style="padding:40px">✔️ No upcoming reminders. You\'re all caught up!</p></div>';
+      return;
+    }
+    el.innerHTML = rems.map((r,i) => {
+      const d = new Date(r.remind_date+'T00:00');
+      const diff = Math.ceil((d-today)/86400000);
+      let urgCls, urgLabel;
+      if(diff<=2){ urgCls='urg-urgent'; urgLabel=diff<=0?'TODAY':diff===1?'Tomorrow':diff+'d away'; urgent++; }
+      else if(diff<=7){ urgCls='urg-week'; urgLabel=diff+'d away'; week++; }
+      else{ urgCls='urg-later'; urgLabel=diff+'d away'; later++; }
+      const typeColorMap={interview:'rc-green',deadline:'rc-red',offer:'rc-blue','follow-up':'rc-amber',other:''};
+      const cardCls = typeColorMap[r.reminder_type]||typeColorMap[r.reminder_type?.toLowerCase()]||'';
+      return `<div class="rem-card ${cardCls}" style="animation:fadeUp .3s ease ${i*0.05}s both">
+        <div class="rem-header">
+          <span class="rem-type-badge">${escHtml(r.reminder_type)}</span>
+          <span class="rem-date">📅 ${r.remind_date}${r.remind_time?' at '+r.remind_time:''}</span>
+          <span class="urgency ${urgCls}">${urgLabel}</span>
+        </div>
+        <div class="rem-text"><strong>${escHtml(r.title)}</strong></div>
+        ${r.note?`<div class="rem-note">📝 ${escHtml(r.note)}</div>`:''}
+        <div class="rem-actions">
+          <button class="rem-btn rem-btn-done" onclick="markDone(${r.id}, this)">✔ Done</button>
+          <button class="rem-btn rem-btn-edit" onclick="deleteRem(${r.id})">🗑 Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('r-urgent').textContent = urgent;
+    document.getElementById('r-week').textContent = week;
+    document.getElementById('r-later').textContent = later;
+  }catch(e){
+    document.getElementById('remList').innerHTML='<p class="empty">Failed to load reminders.</p>';
+  }
+}
+
+async function markDone(id, btn) {
+  try{
+    await fetch(`/api/reminders/${id}/done`,{method:'POST'});
+    const card=btn.closest('.rem-card');
+    card.style.opacity='0'; card.style.transform='translateX(20px)'; card.style.transition='all .3s';
+    setTimeout(()=>{ card.remove(); loadReminders(); },300);
+    showToast('Reminder completed! ✔','success');
+  }catch(e){ loadReminders(); showToast('Done!','success'); }
+}
+
+async function deleteRem(id) {
+  if(!confirm('Delete this reminder?')) return;
+  try{
+    await fetch(`/api/reminders/${id}`,{method:'DELETE'});
+    showToast('Reminder deleted','info');
+    loadReminders();
+  }catch(e){}
+}
+
+function openAddForm(){ document.getElementById('add-rem-form').classList.remove('hidden'); document.getElementById('add-rem-form').scrollIntoView({behavior:'smooth'}); }
+function closeAddForm(){ document.getElementById('add-rem-form').classList.add('hidden'); }
+
+async function saveNewReminder(){
+  const title=document.getElementById('new-rem-title').value.trim();
+  const date=document.getElementById('new-rem-date').value;
+  if(!title||!date){ showToast('Title and date are required','error'); return; }
+  const body={
+    title,
+    remind_date: date,
+    remind_time: document.getElementById('new-rem-time').value,
+    reminder_type: document.getElementById('new-rem-type').value,
+    note: document.getElementById('new-rem-note').value
+  };
+  try{
+    const res=await fetch('/api/reminders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(res.ok){ showToast('Reminder saved! 📌','success'); closeAddForm(); loadReminders(); ['new-rem-title','new-rem-date','new-rem-time','new-rem-note'].forEach(id=>document.getElementById(id).value=''); }
+    else showToast('Error saving reminder','error');
+  }catch(e){ showToast('Error saving reminder','error'); }
+}
+
+loadReminders();
+</script>
+{% endblock %}

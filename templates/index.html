@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+{% set active = 'dashboard' %}
+{% block title %}Dashboard — HireBloom{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="greeting-chip">🌸 Good morning!</div>
+  <h1>Applicant Dashboard</h1>
+  <p>Track applications, interviews, and every next step — all in one beautiful place.</p>
+</div>
+
+<!-- Welcome Banner / HR Updates -->
+<div id="hr-notifications"></div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-icon si-blue">📤</div><div class="stat-body"><span class="stat-num" id="s-total">0</span><span class="stat-label">Total</span><span class="stat-sub">All applications</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-pink">🕒</div><div class="stat-body"><span class="stat-num" id="s-applied">0</span><span class="stat-label">Applied</span><span class="stat-sub">Awaiting response</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-amber">📅</div><div class="stat-body"><span class="stat-num" id="s-interview">0</span><span class="stat-label">Interview</span><span class="stat-sub">Active interviews</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-green">🎉</div><div class="stat-body"><span class="stat-num" id="s-offer">0</span><span class="stat-label">Selected</span><span class="stat-sub">Offers received</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-rose">❌</div><div class="stat-body"><span class="stat-num" id="s-rejected">0</span><span class="stat-label">Rejected</span><span class="stat-sub">Keep going!</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-purple">🔔</div><div class="stat-body"><span class="stat-num" id="s-deadlines">0</span><span class="stat-label">Deadlines</span><span class="stat-sub">Next 7 days</span></div></div>
+  <div class="stat-card"><div class="stat-icon si-blue">📋</div><div class="stat-body"><span class="stat-num" id="s-interviews">0</span><span class="stat-label">Upcoming</span><span class="stat-sub">Interviews soon</span></div></div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+  <button class="qa-card" onclick="openModal('add-app-modal')">
+    <div class="qa-icon qai-pink">➕</div>
+    <span class="qa-label">Add Application</span>
+  </button>
+  <button class="qa-card" onclick="window.location.href='/jobs'">
+    <div class="qa-icon qai-green">🔍</div>
+    <span class="qa-label">Search Jobs</span>
+  </button>
+  <button class="qa-card" onclick="openModal('add-reminder-modal')">
+    <div class="qa-icon qai-blue">📌</div>
+    <span class="qa-label">Set Reminder</span>
+  </button>
+  <button class="qa-card" onclick="openModal('profile-modal')">
+    <div class="qa-icon qai-purple">👤</div>
+    <span class="qa-label">Update Profile</span>
+  </button>
+</div>
+
+<!-- Two Column Layout -->
+<div class="two-col">
+
+  <!-- LEFT COLUMN -->
+  <div>
+
+    <!-- Profile Card -->
+    <div class="profile-card section-card" style="display:flex;align-items:center;gap:16px;padding:22px">
+      <div class="profile-avatar-wrap" style="position:relative;flex-shrink:0">
+        <div class="profile-avatar" id="dash-avatar-display" style="width:60px;height:60px;background:linear-gradient(135deg,var(--pk300),var(--pk600));border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;font-weight:700;border:3px solid var(--pk200);font-family:'Playfair Display',serif;overflow:hidden">
+          <span id="dash-avatar-initials">AN</span>
+        </div>
+        <div style="position:absolute;bottom:2px;right:2px;width:12px;height:12px;background:#10b981;border-radius:50%;border:2px solid #fff"></div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:1rem;font-weight:700;color:var(--text);font-family:'Playfair Display',serif" id="dash-profile-name">Anjali Nair</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-top:2px" id="dash-profile-role">UI/UX Designer & Frontend Developer</div>
+        <div id="dash-tags-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <span class="tag">React</span><span class="tag">Figma</span><span class="tag-gray">Open to work</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.78rem;color:var(--text3)">
+          <span>Profile</span>
+          <div style="flex:1;height:5px;background:var(--pk100);border-radius:99px;overflow:hidden">
+            <div id="dash-profile-bar" style="height:100%;width:60%;background:linear-gradient(90deg,var(--pk300),var(--pk500));border-radius:99px;transition:width .6s ease"></div>
+          </div>
+          <span style="color:var(--pk500);font-weight:700" id="dash-profile-pct">60%</span>
+        </div>
+      </div>
+      <button class="link-all" style="flex-shrink:0" onclick="openModal('profile-modal')">Edit profile</button>
+    </div>
+
+    <!-- Recent Applications -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2>Recent Applications</h2>
+        <a href="/application" class="link-all">View all →</a>
+      </div>
+      <div class="filter-row">
+        <input class="filter-input" type="text" placeholder="🔍 Search company or role…" id="dash-search" oninput="filterDashApps()"/>
+        <select class="filter-select" id="dash-status-filter" onchange="filterDashApps()">
+          <option value="">All Status</option>
+          <option value="Applied">Applied</option>
+          <option value="Interview">Interview</option>
+          <option value="Offer">Offer</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+      <div id="recent-apps"><p class="loading">Loading applications…</p></div>
+      <div id="dash-app-empty" class="hidden" style="text-align:center;padding:24px;color:var(--text3);font-size:.88rem">No applications match your filters.</div>
+    </div>
+
+    <!-- HR Notifications -->
+    <div class="section-card" id="hr-notif-card" style="display:none">
+      <div class="section-header">
+        <h2>HR Notifications</h2>
+        <span class="link-all">View all →</span>
+      </div>
+      <div id="hr-notif-list"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+
+    <!-- Mini Calendar -->
+    <div class="section-card" id="calendar-section">
+      <div class="cal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <span class="cal-month" id="cal-month-label" style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--text)"></span>
+        <div style="display:flex;gap:6px">
+          <button class="cal-nav-btn" onclick="prevMonth()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text2);font-size:.8rem;transition:.15s">‹</button>
+          <button class="cal-nav-btn" onclick="nextMonth()" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text2);font-size:.8rem;transition:.15s">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend" style="margin-top:10px">
+        <div class="leg-item"><div class="leg-dot dot-green"></div>Interview</div>
+        <div class="leg-item"><div class="leg-dot dot-pink"></div>Deadline</div>
+        <div class="leg-item"><div class="leg-dot dot-blue"></div>Offer</div>
+        <div class="leg-item"><div class="leg-dot dot-red"></div>Follow-up</div>
+      </div>
+    </div>
+
+    <!-- Upcoming Events -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2>Upcoming Events</h2>
+        <a href="/calendar" class="link-all">+ Add event</a>
+      </div>
+      <div id="dash-events"><p class="empty">No upcoming events. <a href="/calendar" style="color:var(--pk500)">Add one →</a></p></div>
+    </div>
+
+    <!-- Reminders -->
+    <div class="section-card" id="reminders-section">
+      <div class="section-header">
+        <h2>Reminders</h2>
+        <span class="link-all" onclick="openModal('add-reminder-modal')">+ Add new</span>
+      </div>
+      <div id="dash-reminders"><p class="empty">No reminders. <a href="/reminders" style="color:var(--pk500)">View all →</a></p></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="section-card">
+      <div class="section-header"><h2>Application Progress</h2></div>
+      <div class="progress-wrap">
+        <div class="prog-label"><span>Response rate</span><span class="prog-pct" id="d-resp-pct">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:0" id="d-resp-bar"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="prog-label"><span>Interview conversion</span><span class="prog-pct" id="d-intv-pct">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:0" id="d-intv-bar"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="prog-label"><span>Offer rate</span><span class="prog-pct" id="d-offr-pct">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:0" id="d-offr-bar"></div></div>
+      </div>
+      <div class="prog-sub">Based on your total applications · live data</div>
+      <div class="tip-card" style="margin-top:14px">
+        <div class="tip-icon">💡</div>
+        <div>
+          <div class="tip-title">Tip of the day</div>
+          <div class="tip-text">Personalize your cover letter for each role. Mentioning the company's recent work increases callback rates by up to 40%.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- end two-col -->
+
+<!-- ── Add Application Modal ── -->
+<div class="modal hidden" id="add-app-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Add New Application</h3>
+      <button class="modal-close" onclick="closeModal('add-app-modal')">✕</button>
+    </div>
+    <div class="form-row">
+      <div><label class="form-label">Company Name</label><input class="form-input" type="text" placeholder="e.g. TechNova Inc." id="m-company"/></div>
+      <div><label class="form-label">Job Title / Role</label><input class="form-input" type="text" placeholder="e.g. Senior UX Designer" id="m-role"/></div>
+    </div>
+    <div class="form-row">
+      <div><label class="form-label">Location</label><input class="form-input" type="text" placeholder="e.g. Mumbai / Remote" id="m-location"/></div>
+      <div><label class="form-label">Status</label>
+        <select class="form-input" id="m-status">
+          <option value="applied">Applied</option><option value="interview">Interview</option><option value="offer">Offer</option><option value="rejected">Rejected</option>
+        </select>
+      </div>
+    </div>
+    <div><label class="form-label">Date Applied</label><input class="form-input" type="date" id="m-date"/></div>
+    <div><label class="form-label">Notes (optional)</label><textarea class="form-input" rows="2" placeholder="Any notes about this application…" id="m-notes" style="resize:vertical"></textarea></div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeModal('add-app-modal')">Cancel</button>
+      <button class="btn-primary" onclick="addApplication()">🌸 Add Application</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Reminder Modal ── -->
+<div class="modal hidden" id="add-reminder-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Set a Reminder</h3>
+      <button class="modal-close" onclick="closeModal('add-reminder-modal')">✕</button>
+    </div>
+    <div><label class="form-label">Reminder Title</label><input class="form-input" type="text" placeholder="e.g. Follow up with HR" id="r-title"/></div>
+    <div class="form-row">
+      <div><label class="form-label">Type</label>
+        <select class="form-input" id="r-type">
+          <option>Interview</option><option>Deadline</option><option>Follow-up</option><option>Offer Deadline</option><option>Other</option>
+        </select>
+      </div>
+      <div><label class="form-label">Date</label><input class="form-input" type="date" id="r-date"/></div>
+    </div>
+    <div><label class="form-label">Note (optional)</label><textarea class="form-input" rows="2" placeholder="Additional details…" id="r-note" style="resize:vertical"></textarea></div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeModal('add-reminder-modal')">Cancel</button>
+      <button class="btn-primary" onclick="addReminder()">📌 Set Reminder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Profile Modal ── -->
+<div class="modal hidden" id="profile-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Update Profile</h3>
+      <button class="modal-close" onclick="closeModal('profile-modal')">✕</button>
+    </div>
+
+    <!-- Avatar Upload -->
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;gap:10px">
+      <div id="profile-preview" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--pk300),var(--pk600));display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:#fff;border:3px solid var(--pk200);overflow:hidden;cursor:pointer" onclick="document.getElementById('photo-input').click()">
+        <span id="profile-preview-initials">AN</span>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="previewPhoto(event)"/>
+      <button onclick="document.getElementById('photo-input').click()" style="background:var(--pk50);border:1.5px solid var(--pk200);color:var(--pk600);padding:6px 16px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer">📷 Upload Photo</button>
+      <div style="font-size:.74rem;color:var(--text3)">JPG, PNG · Max 2MB</div>
+    </div>
+
+    <div class="form-row">
+      <div><label class="form-label">Full Name</label><input class="form-input" id="p-name" placeholder="Anjali Nair" oninput="updateProfilePreview()"/></div>
+      <div><label class="form-label">Role / Title</label><input class="form-input" id="p-role" placeholder="UI/UX Designer"/></div>
+    </div>
+    <div class="form-row">
+      <div><label class="form-label">Email</label><input class="form-input" type="email" id="p-email" placeholder="you@email.com"/></div>
+      <div><label class="form-label">Phone</label><input class="form-input" type="tel" id="p-phone" placeholder="+91 9876543210"/></div>
+    </div>
+    <div><label class="form-label">Location</label><input class="form-input" id="p-location" placeholder="Mumbai, India"/></div>
+    <div><label class="form-label">Bio / Summary</label><textarea class="form-input" id="p-bio" rows="3" placeholder="A short bio about yourself…" style="resize:vertical"></textarea></div>
+    <div><label class="form-label">Skills (comma-separated)</label><input class="form-input" id="p-skills" placeholder="React, Figma, UX Research, Python"/></div>
+    <div><label class="form-label">LinkedIn URL</label><input class="form-input" type="url" id="p-linkedin" placeholder="https://linkedin.com/in/yourprofile"/></div>
+    <div><label class="form-label">Portfolio / Website</label><input class="form-input" type="url" id="p-portfolio" placeholder="https://yourportfolio.com"/></div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeModal('profile-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveProfile()">✨ Save Profile</button>
+    </div>
+  </div>
+</div>
+
+<div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
+
+{% endblock %}
+
+{% block head %}
+<style>
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px}
+@media(max-width:600px){.quick-actions{grid-template-columns:repeat(2,1fr)}}
+.qa-card{background:var(--white);border:1.5px solid var(--border);border-radius:16px;padding:16px 10px;text-align:center;transition:all .25s;display:flex;flex-direction:column;align-items:center;gap:8px;animation:fadeUp .4s ease both;cursor:pointer}
+.qa-card:hover{background:var(--pk50);border-color:var(--pk300);transform:translateY(-3px);box-shadow:0 6px 20px rgba(219,39,119,.12)}
+.qa-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;transition:transform .2s}
+.qa-card:hover .qa-icon{transform:scale(1.12)}
+.qai-pink{background:var(--pk100);color:var(--pk500)}
+.qai-green{background:#dcfce7;color:#15803d}
+.qai-blue{background:#e0f2fe;color:#0284c7}
+.qai-purple{background:#ede9fe;color:#7c3aed}
+.qa-label{font-size:.74rem;font-weight:600;color:var(--text2)}
+
+/* App rows in dashboard */
+.dash-app-row{background:var(--white);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1.5px solid var(--border);border-left:4px solid var(--pk400);transition:all .2s;cursor:pointer}
+.dash-app-row:hover{transform:translateX(3px);box-shadow:0 4px 16px rgba(219,39,119,.12);border-color:var(--pk300)}
+.dash-app-row.s-offer{border-left-color:#16a34a}
+.dash-app-row.s-interview{border-left-color:#d97706}
+.dash-app-row.s-rejected{border-left-color:#e11d48}
+.dash-app-row.s-applied{border-left-color:var(--pk400)}
+
+/* Progress */
+.progress-wrap{margin:10px 0 6px}
+.prog-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2);margin-bottom:5px;font-weight:500}
+.prog-pct{font-weight:700;color:var(--pk500)}
+.prog-track{background:var(--pk100);border-radius:99px;height:8px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pk300),var(--pk500));transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.prog-sub{font-size:.72rem;color:var(--text3);margin-top:14px;padding-top:10px;border-top:1px solid var(--pk100)}
+.tip-card{background:linear-gradient(120deg,var(--pk50),#fff0f8);border:1.5px solid var(--pk200);border-radius:14px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start;margin-top:14px}
+.tip-icon{font-size:1.3rem;flex-shrink:0}
+.tip-title{font-size:.82rem;font-weight:700;color:var(--pk600);margin-bottom:2px}
+.tip-text{font-size:.77rem;color:var(--text2);line-height:1.5}
+
+/* Event items */
+.dash-ev-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:8px;border:1.5px solid var(--border);transition:.2s}
+.dash-ev-item:hover{background:var(--pk50);border-color:var(--pk200)}
+.dash-ev-date{width:36px;height:36px;flex-shrink:0;border-radius:10px;background:var(--pk100);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.dash-ev-day{font-size:.9rem;font-weight:700;color:var(--pk600)}
+.dash-ev-mon{font-size:.6rem;font-weight:700;color:var(--pk400);text-transform:uppercase;letter-spacing:.04em}
+
+/* Calendar legend */
+.leg-item{display:flex;align-items:center;gap:5px;font-size:.73rem;color:var(--text2)}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:#10b981}.dot-pink{background:var(--pk400)}.dot-blue{background:#3b82f6}.dot-red{background:#ef4444}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Helpers ──
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const COLORS = ['co-a','co-b','co-c','co-d','co-e','co-f','co-g'];
+function colorFor(str){ let h=0; for(let c of str) h=(h<<5)-h+c.charCodeAt(0); return COLORS[Math.abs(h)%COLORS.length]; }
+function initials(str){ return str.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+
+// ── Load Dashboard ──
+let dashAllApps = [];
+async function loadDashboard() {
+  const [stats, apps] = await Promise.all([
+    fetch('/api/applications/stats').then(r=>r.json()).catch(()=>({total:0,applied:0,interview:0,offer:0,rejected:0,upcoming_deadlines:0,upcoming_interviews:0})),
+    fetch('/api/applications').then(r=>r.json()).catch(()=>[])
+  ]);
+  dashAllApps = apps;
+
+  document.getElementById('s-total').textContent     = stats.total||0;
+  document.getElementById('s-applied').textContent   = stats.applied||0;
+  document.getElementById('s-interview').textContent = stats.interview||0;
+  document.getElementById('s-offer').textContent     = stats.offer||0;
+  document.getElementById('s-rejected').textContent  = stats.rejected||0;
+  document.getElementById('s-deadlines').textContent = stats.upcoming_deadlines||0;
+  document.getElementById('s-interviews').textContent= stats.upcoming_interviews||0;
+
+  renderHRNotifications(apps);
+  renderDashApps(apps);
+  updateProgress(apps);
+  loadDashReminders();
+  loadDashEvents();
+}
+
+function renderDashApps(apps){
+  const el = document.getElementById('recent-apps');
+  if (!apps.length){ el.innerHTML='<p class="empty">No applications yet. <a href="/application" style="color:var(--pk500)">Add one! →</a></p>'; return; }
+  const BADGE = {applied:'b-applied',interview:'b-interview',offer:'b-offer',rejected:'b-rejected'};
+  el.innerHTML = apps.slice(0,8).map(a=>{
+    const sLow = (a.status||'applied').toLowerCase();
+    const hrStatus = a.hr_status && a.hr_status!=='Pending' ? a.hr_status : null;
+    const hrCls = !hrStatus?'':['Hired','Eligible'].includes(hrStatus)?'b-offer':hrStatus==='Interview'?'b-interview':['Rejected','Not Eligible'].includes(hrStatus)?'b-rejected':'b-pending';
+    return `<div class="dash-app-row s-${sLow}">
+      <div class="app-info">
+        <div class="co-avatar ${colorFor(a.company)}">${initials(a.company)}</div>
+        <div class="app-info-text">
+          <strong>${escHtml(a.company)}</strong>
+          <div class="app-meta">${escHtml(a.position)}${a.location?' · '+escHtml(a.location):''}${a.application_date?' · '+escHtml(a.application_date):''}</div>
+          ${hrStatus?`<div style="margin-top:3px;font-size:.73rem;color:var(--text3)">HR: <span class="badge ${hrCls}" style="font-size:.65rem;padding:2px 8px">${escHtml(hrStatus)}</span>${a.hr_notes?` — <em>${escHtml(a.hr_notes)}</em>`:''}</div>`:''}
+        </div>
+      </div>
+      <span class="badge ${BADGE[sLow]||'b-applied'}">${escHtml(a.status)}</span>
+    </div>`;
+  }).join('');
+}
+
+function filterDashApps(){
+  const q = document.getElementById('dash-search').value.toLowerCase();
+  const s = document.getElementById('dash-status-filter').value;
+  const filtered = dashAllApps.filter(a=>
+    (!s||a.status===s)&&(!q||a.company.toLowerCase().includes(q)||a.position.toLowerCase().includes(q))
+  );
+  renderDashApps(filtered);
+  document.getElementById('dash-app-empty').classList.toggle('hidden', filtered.length>0);
+}
+
+function renderHRNotifications(apps){
+  const updates = apps.filter(a=>['Hired','Eligible','Interview','Rejected','Not Eligible'].includes(a.hr_status));
+  const el = document.getElementById('hr-notifications');
+  if (!updates.length){ el.innerHTML=''; return; }
+  el.innerHTML = `<div style="background:linear-gradient(120deg,#fff0f8,#fce7f3,#ffd6e7);border:1.5px solid var(--pk200);border-radius:18px;padding:20px 24px;margin-bottom:26px;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden">
+    <div style="position:absolute;right:24px;bottom:-10px;font-size:5rem;opacity:.1;pointer-events:none;transform:rotate(-15deg)">🌸</div>
+    <div style="width:48px;height:48px;flex-shrink:0;background:linear-gradient(135deg,var(--pk300),var(--pk500));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 4px 12px rgba(219,39,119,.25)">✨</div>
+    <div style="flex:1">
+      <div style="font-size:1rem;font-weight:700;color:var(--pk700);margin-bottom:3px">You have ${updates.length} new HR update${updates.length>1?'s':''} today</div>
+      <div style="font-size:.82rem;color:var(--text2);line-height:1.5">${updates.slice(0,2).map(a=>`${escHtml(a.company)} → ${escHtml(a.hr_status)}`).join(' · ')}</div>
+    </div>
+    <button class="wb-btn" onclick="document.getElementById('hr-notif-card').scrollIntoView({behavior:'smooth'})" style="background:linear-gradient(135deg,var(--pk400),var(--pk600));color:#fff;border:none;padding:9px 22px;border-radius:20px;font-size:.83rem;font-weight:600;box-shadow:0 3px 12px rgba(219,39,119,.28);transition:all .2s;white-space:nowrap;flex-shrink:0;cursor:pointer">View Updates</button>
+  </div>`;
+
+  const notifCard = document.getElementById('hr-notif-card');
+  notifCard.style.display = 'block';
+  const BADGE = {applied:'b-applied',interview:'b-interview',offer:'b-offer',rejected:'b-rejected'};
+  document.getElementById('hr-notif-list').innerHTML = updates.slice(0,4).map(a=>{
+    const isGood=['Hired','Eligible'].includes(a.hr_status);
+    const isInt=a.hr_status==='Interview';
+    const cls=isGood?'hr-selected':isInt?'hr-interview':'hr-rejected';
+    const icon=isGood?'🎉':isInt?'📅':'📋';
+    return `<div class="hr-banner ${cls}">
+      <div class="hr-icon">${icon}</div>
+      <div>
+        <div class="hr-title">${isGood?'Selected':'Update'} — ${escHtml(a.company)}</div>
+        <div class="hr-msg">${a.hr_notes?`HR says: "<em>${escHtml(a.hr_notes)}</em>"`:`Status updated to <strong>${escHtml(a.hr_status)}</strong>.`}</div>
+        <span class="hr-pill ${isGood?'green':isInt?'yellow':'red'}">${escHtml(a.position)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateProgress(apps){
+  const total = apps.length || 1;
+  const responses = apps.filter(a=>a.status!=='Applied').length;
+  const interviews = apps.filter(a=>a.status==='Interview'||a.status==='Offer').length;
+  const offers = apps.filter(a=>a.status==='Offer').length;
+  const resp = Math.round(responses/total*100);
+  const intv = Math.round(interviews/total*100);
+  const offr = Math.round(offers/total*100);
+  document.getElementById('d-resp-pct').textContent = resp+'%';
+  document.getElementById('d-intv-pct').textContent = intv+'%';
+  document.getElementById('d-offr-pct').textContent = offr+'%';
+  setTimeout(()=>{
+    document.getElementById('d-resp-bar').style.width = resp+'%';
+    document.getElementById('d-intv-bar').style.width = intv+'%';
+    document.getElementById('d-offr-bar').style.width = offr+'%';
+  }, 400);
+}
+
+async function loadDashReminders(){
+  try{
+    const res = await fetch('/api/reminders');
+    const rems = await res.json();
+    const el = document.getElementById('dash-reminders');
+    if (!rems.length){ el.innerHTML='<p class="empty">No reminders. <a href="/reminders" style="color:var(--pk500)">Add one →</a></p>'; return; }
+    const today=new Date(); today.setHours(0,0,0,0);
+    el.innerHTML = rems.slice(0,3).map(r=>{
+      const d=new Date(r.remind_date);
+      const diff=Math.ceil((d-today)/86400000);
+      const urgCls=diff<=2?'urg-urgent':diff<=7?'urg-week':'urg-soon';
+      return `<div class="rem-card rem-${r.reminder_type}">
+        <div class="rem-header">
+          <span class="rem-type-badge">${r.reminder_type}</span>
+          <span class="rem-date">${r.remind_date}</span>
+          <span class="urgency ${urgCls}">${diff<=0?'TODAY':diff+'d'}</span>
+        </div>
+        <div class="rem-text">${escHtml(r.title)}</div>
+        ${r.note?`<div class="rem-note">${escHtml(r.note)}</div>`:''}
+      </div>`;
+    }).join('')+`<a href="/reminders" style="display:block;text-align:center;font-size:.8rem;color:var(--pk500);font-weight:600;margin-top:8px;padding:6px">View all reminders →</a>`;
+  }catch(e){}
+}
+
+async function loadDashEvents(){
+  try{
+    const now=new Date();
+    const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const res=await fetch(`/api/events?month=${ym}`);
+    const events=await res.json();
+    const el=document.getElementById('dash-events');
+    const upcoming=events.filter(e=>e.event_date>=ym).slice(0,4);
+    if(!upcoming.length){ el.innerHTML='<p class="empty">No upcoming events. <a href="/calendar" style="color:var(--pk500)">Add one →</a></p>'; return; }
+    const dotMap={interview:'dot-green',deadline:'dot-pink',offer:'dot-blue',reminder:'dot-red'};
+    el.innerHTML=upcoming.map(e=>{
+      const d=new Date(e.event_date+'T00:00');
+      return `<div class="dash-ev-item">
+        <div class="dash-ev-date"><div class="dash-ev-day">${d.getDate()}</div><div class="dash-ev-mon">${d.toLocaleString('default',{month:'short'})}</div></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.84rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(e.title)}</div>
+          <div style="font-size:.74rem;color:var(--text3)">${e.event_time?e.event_time+' · ':''}${e.note||''}</div>
+        </div>
+        <div class="event-type-dot" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${e.event_type==='interview'?'#10b981':e.event_type==='deadline'?'var(--pk400)':e.event_type==='offer'?'#3b82f6':'#ef4444'}"></div>
+      </div>`;
+    }).join('');
+  }catch(er){}
+}
+
+// ── Mini Calendar ──
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+const CAL_EVENTS={'2026-5-14':'pink','2026-5-16':'green','2026-5-18':'green','2026-5-20':'blue','2026-5-19':'red'};
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+function renderCalendar(){
+  const grid=document.getElementById('cal-grid');
+  document.getElementById('cal-month-label').textContent=MONTHS[calMonth]+' '+calYear;
+  grid.innerHTML='';
+  DAYS.forEach(d=>{const el=document.createElement('div');el.className='cal-day-name';el.textContent=d;grid.appendChild(el)});
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date();
+  for(let i=0;i<firstDay;i++){const el=document.createElement('div');el.className='cal-cell';grid.appendChild(el)}
+  for(let d=1;d<=daysInMonth;d++){
+    const el=document.createElement('div');el.className='cal-cell';el.textContent=d;
+    const isToday=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();
+    if(isToday) el.classList.add('today');
+    const key=`${calYear}-${calMonth+1}-${d}`;
+    if(CAL_EVENTS[key]){const dot=document.createElement('div');dot.className=`event-dot dot-${CAL_EVENTS[key]}`;el.style.position='relative';el.appendChild(dot);}
+    el.addEventListener('click',()=>{document.querySelectorAll('.cal-cell.selected').forEach(c=>c.classList.remove('selected'));if(!isToday)el.classList.add('selected');});
+    grid.appendChild(el);
+  }
+}
+function prevMonth(){if(calMonth===0){calMonth=11;calYear--;}else calMonth--;renderCalendar();}
+function nextMonth(){if(calMonth===11){calMonth=0;calYear++;}else calMonth++;renderCalendar();}
+
+// ── Modals ──
+function openModal(id){document.getElementById(id).classList.remove('hidden')}
+function closeModal(id){document.getElementById(id).classList.add('hidden')}
+document.querySelectorAll('.modal').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden')})});
+
+// ── Add Application (modal) ──
+function addApplication(){
+  const company=document.getElementById('m-company').value.trim();
+  const role=document.getElementById('m-role').value.trim();
+  if(!company||!role){showToast('Please fill in company and role.','error');return;}
+  const status=document.getElementById('m-status').value;
+  const date=document.getElementById('m-date').value;
+  const statusBadge={applied:'b-applied',interview:'b-interview',offer:'b-offer',rejected:'b-rejected'};
+  const statusLabel={applied:'Applied',interview:'Interview',offer:'Offer',rejected:'Rejected'};
+  const initStr=company.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const clrs=['co-a','co-b','co-c','co-d','co-e','co-f','co-g'];
+  const clr=clrs[Math.floor(Math.random()*clrs.length)];
+  const dateStr=date?new Date(date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'Today';
+  const row=document.createElement('div');
+  row.className=`dash-app-row s-${status}`;
+  row.innerHTML=`<div class="app-info"><div class="co-avatar ${clr}">${initStr}</div><div class="app-info-text"><strong>${escHtml(company)}</strong><div class="app-meta">${escHtml(role)} · ${dateStr}</div></div></div><span class="badge ${statusBadge[status]}">${statusLabel[status]}</span>`;
+  const list=document.getElementById('recent-apps');
+  if(list.querySelector('.empty'))list.innerHTML='';
+  list.insertBefore(row,list.firstChild);
+  ['m-company','m-role','m-location','m-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-date').value='';
+  closeModal('add-app-modal');
+  showToast('Application added for '+company+' 🌸','success');
+  document.getElementById('s-total').textContent=parseInt(document.getElementById('s-total').textContent)+1;
+}
+
+// ── Add Reminder (modal) ──
+function addReminder(){
+  const title=document.getElementById('r-title').value.trim();
+  if(!title){showToast('Please enter a reminder title.','error');return;}
+  const type=document.getElementById('r-type').value;
+  const date=document.getElementById('r-date').value;
+  const note=document.getElementById('r-note').value.trim();
+  const typeColor={Interview:'rc-green',Deadline:'rc-red','Follow-up':'','Offer Deadline':'rc-blue',Other:''};
+  const dateStr=date?new Date(date).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}):'No date set';
+  const card=document.createElement('div');
+  card.className='rem-card '+(typeColor[type]||'');
+  card.innerHTML=`<div class="rem-header"><span class="rem-type-badge">${type}</span><span class="rem-date">${dateStr}</span></div><div class="rem-text">${escHtml(title)}</div>${note?`<div class="rem-note">${escHtml(note)}</div>`:''}`;
+  const el=document.getElementById('dash-reminders');
+  if(el.querySelector('.empty'))el.innerHTML='';
+  el.prepend(card);
+  ['r-title','r-date','r-note'].forEach(id=>document.getElementById(id).value='');
+  closeModal('add-reminder-modal');
+  showToast('Reminder set! 📌','success');
+}
+
+// ── Profile ──
+let profileData = JSON.parse(localStorage.getItem('hirebloom-profile')||'{}');
+function loadProfileUI(){
+  if(profileData.name){
+    document.getElementById('dash-profile-name').textContent=profileData.name;
+    document.getElementById('dash-avatar-initials').textContent=profileData.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('p-name').value=profileData.name||'';
+  }
+  if(profileData.role) document.getElementById('dash-profile-role').textContent=profileData.role;
+  if(profileData.photo){
+    const av=document.getElementById('dash-avatar-display');
+    av.style.background='transparent';
+    av.innerHTML=`<img src="${profileData.photo}" style="width:100%;height:100%;object-fit:cover"/>`;
+    document.getElementById('profile-preview').style.background='transparent';
+    document.getElementById('profile-preview').innerHTML=`<img src="${profileData.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  }
+  if(profileData.skills){
+    const tags=profileData.skills.split(',').map(s=>s.trim()).filter(Boolean).slice(0,4);
+    const row=document.getElementById('dash-tags-row');
+    row.innerHTML=tags.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('')+'<span class="tag-gray">Open to work</span>';
+  }
+  const fields=['role','email','phone','location','bio','skills','linkedin','portfolio'];
+  fields.forEach(f=>{ const el=document.getElementById('p-'+f); if(el&&profileData[f]) el.value=profileData[f]; });
+  const pct=Object.keys(profileData).filter(k=>profileData[k]).length;
+  const fullPct=Math.min(Math.round(pct/8*100),100);
+  document.getElementById('dash-profile-bar').style.width=fullPct+'%';
+  document.getElementById('dash-profile-pct').textContent=fullPct+'%';
+}
+
+function updateProfilePreview(){
+  const name=document.getElementById('p-name').value;
+  if(name){
+    document.getElementById('profile-preview-initials').textContent=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  }
+}
+
+function previewPhoto(evt){
+  const file=evt.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const src=e.target.result;
+    const prev=document.getElementById('profile-preview');
+    prev.style.background='transparent';
+    prev.innerHTML=`<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    profileData.photo=src;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveProfile(){
+  const fields=['name','role','email','phone','location','bio','skills','linkedin','portfolio'];
+  fields.forEach(f=>{ const el=document.getElementById('p-'+f); if(el) profileData[f]=el.value; });
+  localStorage.setItem('hirebloom-profile',JSON.stringify(profileData));
+  loadProfileUI();
+  closeModal('profile-modal');
+  showToast('Profile updated! ✨','success');
+}
+
+// ── Init ──
+renderCalendar();
+loadDashboard();
+loadProfileUI();
+</script>
+{% endblock %}
