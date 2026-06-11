@@ -1,6 +1,7 @@
 from flask import Blueprint, session, jsonify, redirect, url_for, render_template
 from models import Application
 from extensions import db
+from sqlalchemy import inspect, text
 import os
 
 tools_bp = Blueprint("tools", __name__)
@@ -9,6 +10,29 @@ def login_required():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
     return None
+
+def ensure_deleted_column():
+    inspector = inspect(db.engine)
+    cols = [c["name"] for c in inspector.get_columns("application")]
+    if "deleted" not in cols:
+        db.session.execute(text("ALTER TABLE application ADD COLUMN deleted BOOLEAN DEFAULT 0"))
+        db.session.commit()
+
+def application_to_dict(a):
+    return {
+        "id": a.id,
+        "user_id": a.user_id,
+        "company": a.company or "",
+        "position": a.position or "",
+        "status": a.status or "Applied",
+        "application_date": a.application_date or "",
+        "deadline": a.deadline or "",
+        "location": a.location or "",
+        "job_type": a.job_type or "",
+        "salary": a.salary or "",
+        "notes": a.notes or "",
+        "deleted": bool(getattr(a, "deleted", False)),
+    }
 
 @tools_bp.route("/tools")
 def tools_page():
@@ -20,14 +44,16 @@ def tools_page():
 def recycle_bin():
     err = login_required()
     if err: return err
+    ensure_deleted_column()
     uid = session["user_id"]
     apps = Application.query.filter_by(user_id=uid, deleted=True).all()
-    return jsonify([a.to_dict() for a in apps])
+    return jsonify([application_to_dict(a) for a in apps])
 
 @tools_bp.route("/api/tools/recycle-bin/empty", methods=["DELETE"])
 def empty_bin():
     err = login_required()
     if err: return err
+    ensure_deleted_column()
     uid = session["user_id"]
     Application.query.filter_by(user_id=uid, deleted=True).delete()
     db.session.commit()
@@ -37,6 +63,7 @@ def empty_bin():
 def storage_info():
     err = login_required()
     if err: return err
+    ensure_deleted_column()
     uid = session["user_id"]
     total = Application.query.filter_by(user_id=uid, deleted=False).count()
     deleted = Application.query.filter_by(user_id=uid, deleted=True).count()
@@ -46,6 +73,7 @@ def storage_info():
 def load_demo():
     err = login_required()
     if err: return err
+    ensure_deleted_column()
     uid = session["user_id"]
     from datetime import date, timedelta
     demos = [
@@ -66,7 +94,10 @@ def load_demo():
          "application_date": date.today() - timedelta(days=20)},
     ]
     for d in demos:
-        app = Application(user_id=uid, **d)
+        record = dict(d)
+        if "interview_date" in record:
+            record["interview_datetime"] = record.pop("interview_date")
+        app = Application(user_id=uid, **record)
         db.session.add(app)
     db.session.commit()
     return jsonify({"success": True, "loaded": len(demos)})

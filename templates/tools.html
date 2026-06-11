@@ -24,7 +24,7 @@
     <h3>🗄️ Demo Data</h3>
     <p>Load sample applications to explore all features of HireBloom.</p>
     <p class="note">ℹ️ Demo apps will be merged with your existing data.</p>
-    <button class="btn-primary" onclick="loadDemo()" style="margin-top:12px">💾 Load Demo Data</button>
+    <button id="loadDemoBtn" class="btn-primary" onclick="loadDemo()" style="margin-top:12px">💾 Load Demo Data</button>
   </div>
 
   <div class="tool-card">
@@ -40,10 +40,16 @@
     <button class="btn-primary" onclick="document.getElementById('importFile').click()" style="margin-top:12px">⭱ Import JSON</button>
   </div>
 
+  <div class="tool-card info">
+    <h3>👩‍💻 Developer Profile</h3>
+    <p>Ready-to-share developer contact card with a polished, consistent layout.</p>
+    <div id="devPreview" style="margin-top:12px"></div>
+  </div>
+
   <div class="tool-card danger">
     <h3>🗑️ Clear All Data</h3>
     <p>Permanently delete all saved applications. <strong>This cannot be undone.</strong></p>
-    <button class="btn-danger" onclick="clearAll()" style="margin-top:12px">🗑️ Clear All Data</button>
+    <button class="btn-danger" onclick="openClearConfirm()" style="margin-top:12px">🗑️ Clear All Data</button>
   </div>
 
   <div class="tool-card">
@@ -71,6 +77,22 @@
   </div>
 </div>
 
+<div id="clearConfirmModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3>🗑️ Delete all data?</h3>
+        <p style="font-size:.84rem;color:var(--text2);margin:0">This will permanently remove every saved application. This action cannot be undone.</p>
+      </div>
+      <button class="modal-close" onclick="closeClearConfirm()">✕</button>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="closeClearConfirm()">Cancel</button>
+      <button class="btn-danger" onclick="confirmClearAll()">Yes, clear everything</button>
+    </div>
+  </div>
+</div>
+
 <div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
 
 {% endblock %}
@@ -79,43 +101,168 @@
 <script>
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+const DEV_PROFILE_KEY = 'hirebloom-dev-profile';
+const DEFAULT_DEV_PROFILE = {
+  name: 'Samiksha Tarte',
+  email: 'tartesamiksha@gmail.com',
+  mobile: '8956323013'
+};
+
+function formatContactCard(profile){
+  const name = escHtml(profile.name || 'Developer');
+  const email = escHtml(profile.email || '');
+  const mobile = escHtml(profile.mobile || '');
+  const initials = (profile.name || 'D').split(/\s+/).map(part=>part[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+
+  return `
+    <div style="position:relative;overflow:hidden;border-radius:22px;padding:16px;background:
+      radial-gradient(circle at top left, rgba(79,70,229,0.22), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(14,165,233,0.18), transparent 36%),
+      linear-gradient(180deg, rgba(255,255,255,0.95), rgba(244,247,255,0.96));
+      border:1px solid rgba(99,102,241,0.18);
+      box-shadow:0 22px 48px -26px rgba(79,70,229,0.55)">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.42),transparent 35%);pointer-events:none"></div>
+      <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff;font-weight:900;font-size:.8rem;box-shadow:0 10px 20px -12px rgba(79,70,229,0.9)">${initials || '👩‍💻'}</div>
+          <div>
+            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.18em;color:var(--text3)">Saved Contact Card</div>
+            <div style="font-weight:900;color:var(--text1);font-size:1.02rem">${name}</div>
+          </div>
+        </div>
+        <div style="padding:5px 9px;border-radius:999px;background:rgba(34,197,94,0.15);color:#15803d;font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase">Ready</div>
+      </div>
+      <div style="position:relative;display:grid;gap:10px;font-size:.85rem;color:var(--text2)">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:12px;background:rgba(255,255,255,0.72);border:1px solid rgba(148,163,184,0.28)">
+          <span style="width:20px;text-align:center">📧</span>
+          <span style="font-weight:700;color:var(--text1)">${email || 'Email not set'}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:12px;background:rgba(255,255,255,0.72);border:1px solid rgba(148,163,184,0.28)">
+          <span style="width:20px;text-align:center">📱</span>
+          <span style="font-weight:700;color:var(--text1)">${mobile || 'Mobile not set'}</span>
+        </div>
+      </div>
+      <div style="position:relative;margin-top:12px;padding-top:10px;border-top:1px dashed rgba(99,102,241,0.22);font-size:.68rem;color:var(--text3);display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span>Stored locally for quick support access</span>
+        <span style="font-weight:800;color:#4f46e5">✨ Premium Contact</span>
+      </div>
+    </div>
+  `;
+}
+
+function loadDeveloperProfile(){
+  const stored = JSON.parse(localStorage.getItem(DEV_PROFILE_KEY) || 'null');
+  const profile = stored && typeof stored === 'object' ? stored : DEFAULT_DEV_PROFILE;
+
+  const nameField = document.getElementById('devName');
+  const emailField = document.getElementById('devEmail');
+  const mobileField = document.getElementById('devMobile');
+  if (nameField) nameField.value = profile.name || '';
+  if (emailField) emailField.value = profile.email || '';
+  if (mobileField) mobileField.value = profile.mobile || '';
+
+  const preview = document.getElementById('devPreview');
+  preview.innerHTML = formatContactCard(profile);
+}
+
+function saveDeveloperProfile(){
+  const nameField = document.getElementById('devName');
+  const emailField = document.getElementById('devEmail');
+  const mobileField = document.getElementById('devMobile');
+
+  if (!nameField || !emailField || !mobileField) {
+    return;
+  }
+
+  const name = nameField.value.trim();
+  const email = emailField.value.trim();
+  const mobile = mobileField.value.trim();
+
+  if (!name || !email || !mobile) {
+    showToast('Please fill in developer name, email, and mobile number ✨','error');
+    return;
+  }
+
+  const profile = { name, email, mobile };
+  localStorage.setItem(DEV_PROFILE_KEY, JSON.stringify(profile));
+  loadDeveloperProfile();
+  showToast('Developer profile saved! 💼','success');
+}
+
+function clearDeveloperProfile(){
+  localStorage.removeItem(DEV_PROFILE_KEY);
+  const nameField = document.getElementById('devName');
+  const emailField = document.getElementById('devEmail');
+  const mobileField = document.getElementById('devMobile');
+  if (nameField) nameField.value = DEFAULT_DEV_PROFILE.name;
+  if (emailField) emailField.value = DEFAULT_DEV_PROFILE.email;
+  if (mobileField) mobileField.value = DEFAULT_DEV_PROFILE.mobile;
+  loadDeveloperProfile();
+  showToast('Developer profile reset to default contact 🌟','info');
+}
+
 async function loadInfo() {
   try{
     const res = await fetch('/api/tools/storage-info');
     const d = await res.json();
     document.getElementById('storageInfo').innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-        <div style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--text2)">
-          <span style="background:var(--pk100);color:var(--pk600);padding:3px 10px;border-radius:20px;font-weight:700;font-size:.72rem">${d.total_applications}</span>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--text2)">
+          <span style="background:linear-gradient(135deg,var(--pk100),#d1fae5);color:var(--pk700);padding:4px 10px;border-radius:999px;font-weight:800;font-size:.72rem">💼 ${d.total_applications}</span>
           active applications
         </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--text2)">
-          <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-weight:700;font-size:.72rem">${d.recycle_bin}</span>
+        <div style="display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--text2)">
+          <span style="background:linear-gradient(135deg,#fee2e2,#fde68a);color:#b45309;padding:4px 10px;border-radius:999px;font-weight:800;font-size:.72rem">♻️ ${d.recycle_bin}</span>
           in recycle bin
         </div>
       </div>`;
-    document.getElementById('binInfo').innerHTML = `<p style="font-size:.84rem;color:var(--text2)">${d.recycle_bin} item(s) currently in recycle bin</p>`;
+    document.getElementById('binInfo').innerHTML = `<p style="font-size:.84rem;color:var(--text2)">♻️ ${d.recycle_bin} item(s) currently waiting in your recycle bin.</p>`;
   }catch(e){
     document.getElementById('storageInfo').innerHTML='<p style="font-size:.82rem;color:var(--text3)">Unable to load storage info.</p>';
+    document.getElementById('binInfo').innerHTML='<p style="font-size:.82rem;color:var(--text3)">Unable to load recycle bin count.</p>';
   }
 }
 
 async function loadDemo() {
+  const btn = document.getElementById('loadDemoBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading demo data...';
   try{
     const res = await fetch('/api/tools/load-demo', { method:'POST' });
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'Failed to load demo data');
+    }
     const d = await res.json();
     showToast(`Loaded ${d.loaded} demo applications! 🌸`,'success');
     loadInfo();
-  }catch(e){ showToast('Error loading demo data','error'); }
+  }catch(e){ showToast(e.message || 'Error loading demo data','error'); }
+  finally{
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
 }
 
-async function clearAll() {
-  if (!confirm('Delete ALL applications permanently? This cannot be undone.')) return;
+function openClearConfirm(){
+  document.getElementById('clearConfirmModal').classList.remove('hidden');
+}
+
+function closeClearConfirm(){
+  document.getElementById('clearConfirmModal').classList.add('hidden');
+}
+
+async function confirmClearAll() {
+  closeClearConfirm();
   try{
-    await fetch('/api/applications/clear', { method:'DELETE' });
-    showToast('All data cleared','info');
+    const res = await fetch('/api/applications/clear', { method:'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'Failed to clear data');
+    }
+    showToast('All data cleared 🗑️','info');
     loadInfo();
-  }catch(e){ showToast('Error clearing data','error'); }
+  }catch(e){ showToast(e.message || 'Error clearing data','error'); }
 }
 
 async function importData() {
@@ -124,68 +271,102 @@ async function importData() {
   const fd = new FormData(); fd.append('file', file);
   try{
     const res = await fetch('/api/applications/import', { method:'POST', body: fd });
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'Import failed');
+    }
     const d = await res.json();
     if (d.success) showToast(`Imported ${d.imported} applications! 🌸`,'success');
     else showToast(d.error||'Import failed','error');
     loadInfo();
-  }catch(e){ showToast('Import error','error'); }
+  }catch(e){ showToast(e.message || 'Import error','error'); }
 }
 
 async function openBin() {
   try{
     const res = await fetch('/api/tools/recycle-bin');
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'Failed to open recycle bin');
+    }
     const apps = await res.json();
     const el = document.getElementById('binList');
     if (!apps.length) {
       el.innerHTML='<p class="empty" style="padding:24px">♻️ Recycle bin is empty.</p>';
     } else {
       el.innerHTML = apps.map(a=>`
-        <div class="app-row" style="margin-bottom:10px">
-          <div class="app-info">
-            <div class="app-info-text">
-              <strong>${escHtml(a.company)}</strong>
-              <div class="app-meta">${escHtml(a.position)}</div>
+        <div class="app-row" style="margin-bottom:12px;padding:14px;border-radius:18px;border:1px solid rgba(148,163,184,0.28);background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(241,245,249,0.95));box-shadow:0 18px 40px -24px rgba(30,41,59,0.55)">
+          <div class="app-info" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;width:100%">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <div style="width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#f59e0b,#f43f5e);color:#fff;font-size:.85rem">🗑️</div>
+              <div class="app-info-text">
+                <strong style="display:block;color:var(--text1)">${escHtml(a.company)}</strong>
+                <div class="app-meta" style="margin-top:4px;color:var(--text2)">🎯 ${escHtml(a.position)}</div>
+                <div class="app-meta" style="margin-top:6px;color:var(--text3);font-size:.72rem">Status: ${escHtml(a.status || 'Applied')}</div>
+              </div>
             </div>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:flex-end">
             <button class="btn-sm btn-success" onclick="restoreApp(${a.id})">↩ Restore</button>
             <button class="btn-sm btn-danger" onclick="permDelete(${a.id})">🗑 Delete Forever</button>
           </div>
         </div>`).join('');
     }
     document.getElementById('binModal').classList.remove('hidden');
-  }catch(e){ showToast('Error opening bin','error'); }
+  }catch(e){ showToast(e.message || 'Error opening bin','error'); }
 }
 
 async function restoreApp(id) {
   try{
-    await fetch(`/api/applications/${id}/restore`,{method:'POST'});
+    const res = await fetch(`/api/applications/${id}/restore`,{method:'POST'});
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'Failed to restore application');
+    }
     showToast('Restored! 🌸','success');
-    openBin(); loadInfo();
-  }catch(e){}
+    loadInfo();
+    openBin();
+  }catch(e){ showToast(e.message || 'Restore failed','error'); }
 }
 
 async function permDelete(id) {
   if(!confirm('Delete forever? This cannot be undone.')) return;
   try{
-    await fetch(`/api/applications/${id}/permanent`,{method:'DELETE'});
-    showToast('Permanently deleted','info');
-    openBin(); loadInfo();
-  }catch(e){}
+    const res = await fetch(`/api/applications/${id}/permanent`,{method:'DELETE'});
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'Failed to permanently delete application');
+    }
+    showToast('Permanently deleted 🧹','info');
+    loadInfo();
+    openBin();
+  }catch(e){ showToast(e.message || 'Permanent delete failed','error'); }
 }
 
 async function emptyBin() {
   if(!confirm('Empty the entire recycle bin? This cannot be undone.')) return;
   try{
-    await fetch('/api/tools/recycle-bin/empty',{method:'DELETE'});
-    showToast('Recycle bin emptied','info');
+    const res = await fetch('/api/tools/recycle-bin/empty',{method:'DELETE'});
+    if (!res.ok) {
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'Failed to empty recycle bin');
+    }
+    showToast('Recycle bin emptied ✨','info');
+    await openBin();
     loadInfo();
-  }catch(e){}
+  }catch(e){ showToast(e.message || 'Failed to empty recycle bin','error'); }
 }
 
-// Click outside modal
-document.getElementById('binModal').addEventListener('click',e=>{if(e.target===document.getElementById('binModal'))document.getElementById('binModal').classList.add('hidden')});
+window.addEventListener('storage', (event)=>{
+  if (event.key === DEV_PROFILE_KEY) loadDeveloperProfile();
+});
 
+// Click outside modal
+document.querySelectorAll('.modal').forEach(modal=>{
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.add('hidden'); });
+});
+
+loadDeveloperProfile();
 loadInfo();
 </script>
 {% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% set active = 'vacancies' %}
+{% block title %}Browse Jobs — HireBloom{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="greeting-chip">🔍 Explore Openings</div>
+  <h1>Browse Job Vacancies</h1>
+  <p>Discover open positions posted by companies and apply in one click.</p>
+</div>
+
+<!-- Filters -->
+<div class="filter-row" style="margin-bottom:20px;flex-wrap:wrap;gap:10px">
+  <input class="filter-input" type="text" id="vac-search" placeholder="🔍 Search title, company, skills…" oninput="filterVacancies()" style="flex:2;min-width:200px"/>
+  <select class="filter-select" id="vac-type" onchange="filterVacancies()">
+    <option value="">All Types</option>
+    <option>Full-time</option><option>Part-time</option>
+    <option>Internship</option><option>Contract</option>
+    <option>Remote</option><option>Hybrid</option>
+  </select>
+  <select class="filter-select" id="vac-sort" onchange="filterVacancies()">
+    <option value="newest">Newest First</option>
+    <option value="deadline">By Deadline</option>
+  </select>
+</div>
+
+<div id="vacCount" style="font-size:.83rem;color:#6b7280;margin-bottom:16px"></div>
+<div id="vacanciesGrid"><p class="loading">Loading vacancies…</p></div>
+{% endblock %}
+
+{% block head %}
+<style>
+.vac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+.vac-card{background:#fff;border:1.5px solid var(--border);border-radius:18px;padding:22px 22px 18px;transition:all .25s;display:flex;flex-direction:column;gap:0}
+.vac-card:hover{box-shadow:0 8px 28px rgba(219,39,119,.13);border-color:var(--pk300);transform:translateY(-2px)}
+.vac-logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--pk200),var(--pk400));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;color:#fff;flex-shrink:0;margin-bottom:12px}
+.vac-title{font-size:1rem;font-weight:800;color:var(--text);margin-bottom:3px}
+.vac-company{font-size:.82rem;color:var(--text2);margin-bottom:10px;font-weight:500}
+.vac-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.vc{border-radius:20px;padding:3px 11px;font-size:.73rem;font-weight:600}
+.vc-green{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+.vc-blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
+.vc-amber{background:#fefce8;border:1px solid #fde68a;color:#92400e}
+.vc-purple{background:#fdf4ff;border:1px solid #e9d5ff;color:#7c3aed}
+.vc-rose{background:#fff1f2;border:1px solid #fecdd3;color:#be123c}
+.vac-desc{font-size:.81rem;color:var(--text2);line-height:1.6;margin-bottom:10px;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.vac-skills-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.vsk{background:var(--pk50);color:var(--pk600);border-radius:6px;padding:2px 9px;font-size:.71rem;font-weight:600}
+.vac-footer{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border);margin-top:auto}
+.vac-date{font-size:.74rem;color:var(--text3)}
+.btn-apply{background:linear-gradient(135deg,var(--pk400),var(--pk600));color:#fff;border:none;padding:9px 22px;border-radius:20px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(219,39,119,.2)}
+.btn-apply:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(219,39,119,.35)}
+.btn-apply:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn-applied{background:#d1fae5;color:#065f46;border:1.5px solid #6ee7b7;padding:8px 18px;border-radius:20px;font-size:.82rem;font-weight:700;cursor:default}
+.empty-state{text-align:center;padding:60px 24px;color:var(--text3)}
+.empty-state .es-icon{font-size:3.5rem;margin-bottom:14px}
+.empty-state h3{font-size:1.1rem;font-weight:700;color:var(--text2);margin-bottom:6px}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allVacancies = [];
+let appliedIds   = new Set();
+
+async function loadVacancies() {
+  try {
+    const [vacs, apps] = await Promise.all([
+      fetch('/api/vacancies').then(r => r.json()),
+      fetch('/api/applications').then(r => r.json()).catch(() => [])
+    ]);
+    allVacancies = vacs;
+    // Mark already-applied
+    apps.forEach(a => {
+      const match = vacs.find(v => v.title === a.position && v.company === a.company);
+      if (match) appliedIds.add(match.id);
+    });
+    filterVacancies();
+  } catch(e) {
+    document.getElementById('vacanciesGrid').innerHTML = '<p class="empty">Failed to load vacancies.</p>';
+  }
+}
+
+function filterVacancies() {
+  const q    = document.getElementById('vac-search').value.toLowerCase();
+  const type = document.getElementById('vac-type').value;
+  const sort = document.getElementById('vac-sort').value;
+
+  let list = allVacancies.filter(v => {
+    const matchQ = !q || v.title.toLowerCase().includes(q) ||
+                   v.company.toLowerCase().includes(q) ||
+                   (v.skills||'').toLowerCase().includes(q) ||
+                   (v.location||'').toLowerCase().includes(q);
+    const matchT = !type || v.job_type === type;
+    return matchQ && matchT;
+  });
+
+  if (sort === 'deadline') {
+    list = list.sort((a,b) => (a.deadline||'9999') < (b.deadline||'9999') ? -1 : 1);
+  }
+
+  document.getElementById('vacCount').textContent = `${list.length} opening${list.length!==1?'s':''} found`;
+
+  const el = document.getElementById('vacanciesGrid');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">🔍</div><h3>No vacancies found</h3><p>Try adjusting your search or filters.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="vac-grid">${list.map(v => vacCard(v)).join('')}</div>`;
+}
+
+function vacCard(v) {
+  const isApplied = appliedIds.has(v.id);
+  const logo = (v.company||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const skills = v.skills ? v.skills.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+  return `<div class="vac-card">
+    <div class="vac-logo">${esc(logo)}</div>
+    <div class="vac-title">${esc(v.title)}</div>
+    <div class="vac-company">🏢 ${esc(v.company)}</div>
+    <div class="vac-chips">
+      ${v.location   ? `<span class="vc vc-blue">📍 ${esc(v.location)}</span>` : ''}
+      ${v.job_type   ? `<span class="vc vc-green">${esc(v.job_type)}</span>` : ''}
+      ${v.experience ? `<span class="vc vc-purple">🎓 ${esc(v.experience)}</span>` : ''}
+      ${v.salary     ? `<span class="vc vc-amber">💰 ${esc(v.salary)}</span>` : ''}
+      ${v.deadline   ? `<span class="vc vc-rose">⏰ ${esc(v.deadline)}</span>` : ''}
+    </div>
+    ${v.description ? `<div class="vac-desc">${esc(v.description)}</div>` : ''}
+    ${skills.length ? `<div class="vac-skills-row">${skills.slice(0,5).map(s=>`<span class="vsk">${esc(s)}</span>`).join('')}</div>` : ''}
+    <div class="vac-footer">
+      <span class="vac-date">Posted ${esc((v.created_at||'').substring(0,10))}</span>
+      ${isApplied
+        ? `<span class="btn-applied">✅ Applied</span>`
+        : `<button class="btn-apply" id="applyBtn-${v.id}" onclick="applyNow(${v.id}, this)">Apply Now →</button>`
+      }
+    </div>
+  </div>`;
+}
+
+async function applyNow(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Applying…';
+  try {
+    const res  = await fetch(`/api/vacancies/${id}/apply`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      appliedIds.add(id);
+      btn.outerHTML = `<span class="btn-applied">✅ Applied</span>`;
+      showToast('Application submitted! 🌸', 'success');
+    } else {
+      showToast(data.message || data.error || 'Could not apply.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Apply Now →';
+    }
+  } catch(e) {
+    showToast('Network error. Please try again.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Apply Now →';
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadVacancies();
+</script>
+{% endblock %}

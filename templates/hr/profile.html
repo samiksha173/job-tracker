@@ -1,0 +1,257 @@
+{% extends "hr/base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block topbar_title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>👤 My Profile</h1>
+  <p>Manage your HR identity, avatar, and account security.</p>
+</div>
+
+<div class="profile-shell">
+  <section class="profile-overview-card">
+    <div class="profile-avatar-wrap" id="profileAvatarWrap">
+      {% if profile.avatar_filename %}
+        <img src="/media/hr_avatars/{{ profile.avatar_filename }}" alt="Profile avatar" class="profile-avatar-image" id="profileAvatarPreview"/>
+      {% else %}
+        <div class="profile-avatar-fallback" id="profileAvatarPreview">{{ (user.name or 'HR')[:2]|upper }}</div>
+      {% endif %}
+      <button class="profile-avatar-edit" type="button" id="avatarUploadTrigger" aria-label="Change profile photo">📷 Change Photo</button>
+    </div>
+
+    <div class="profile-overview-copy">
+      <div class="profile-overview-topbar">
+        <div>
+          <div class="profile-eyebrow">HR Professional</div>
+          <h2 class="profile-name">{{ user.name or 'HR User' }}</h2>
+          <div class="profile-subtitle">{{ profile.job_title or 'HR Professional' }} • {{ user.company or 'Company' }}</div>
+        </div>
+        <div class="profile-overview-actions">
+          <button class="btn-secondary" type="button" onclick="document.getElementById('profileFormCard').scrollIntoView({behavior:'smooth'});">✏️ Edit Profile</button>
+        </div>
+      </div>
+
+      <div class="profile-contact-list">
+        <div class="profile-contact-item"><span class="contact-label">Email</span><span class="contact-value">{{ profile.work_email or user.email }}</span></div>
+        <div class="profile-contact-item"><span class="contact-label">Company</span><span class="contact-value">{{ user.company or 'Not set' }}</span></div>
+        <div class="profile-contact-item"><span class="contact-label">Location</span><span class="contact-value">{{ profile.location or 'Not set' }}</span></div>
+        <div class="profile-contact-item"><span class="contact-label">LinkedIn</span><span class="contact-value">{{ profile.linkedin_url or 'Not linked' }}</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="profile-grid" id="profileFormCard">
+    <article class="profile-panel profile-form-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Profile Details</div>
+          <h3>Personal & Company Information</h3>
+        </div>
+        <span class="panel-badge">Editable</span>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" action="/hr/profile" id="profileForm">
+        <input type="file" name="avatar" id="avatarInput" accept="image/*" style="display:none;"/>
+
+        <div class="profile-form-grid">
+          <div class="form-field">
+            <label for="full_name">Full Name</label>
+            <input type="text" id="full_name" name="full_name" value="{{ user.name or '' }}"/>
+          </div>
+
+          <div class="form-field">
+            <label for="job_title">Job Title / Designation</label>
+            <input type="text" id="job_title" name="job_title" value="{{ profile.job_title or '' }}"/>
+          </div>
+
+          <div class="form-field">
+            <label for="company_name">Company Name</label>
+            <input type="text" id="company_name" name="company_name" value="{{ user.company or '' }}"/>
+          </div>
+
+          <div class="form-field">
+            <label for="company_website">Company Website</label>
+            <input type="url" id="company_website" name="company_website" value="{{ profile.company_website or '' }}"/>
+          </div>
+
+          <div class="form-field">
+            <label for="phone_number">Phone Number</label>
+            <input type="text" id="phone_number" name="phone_number" value="{{ profile.phone_number or '' }}"/>
+          </div>
+
+          <div class="form-field">
+            <label for="work_email">Work Email</label>
+            <input type="email" id="work_email" name="work_email" value="{{ profile.work_email or user.email or '' }}"/>
+          </div>
+
+          <div class="form-field">
+            <label for="linkedin_url">LinkedIn Profile</label>
+            <input type="url" id="linkedin_url" name="linkedin_url" value="{{ profile.linkedin_url or '' }}"/>
+          </div>
+
+          <div class="form-field">
+            <label for="location">Location</label>
+            <input type="text" id="location" name="location" value="{{ profile.location or '' }}"/>
+          </div>
+
+          <div class="form-field form-full">
+            <label for="bio">About Me / Bio</label>
+            <textarea id="bio" name="bio" rows="5">{{ profile.bio or '' }}</textarea>
+          </div>
+        </div>
+
+        <div class="profile-form-actions">
+          <button class="btn-primary" type="submit">💾 Save Changes</button>
+        </div>
+      </form>
+    </article>
+
+    <aside class="profile-panel profile-stats-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Account Overview</div>
+          <h3>Account Information</h3>
+        </div>
+      </div>
+
+      <div class="profile-stats-list">
+        <div class="profile-stat-box">
+          <div class="profile-stat-label">Date Joined</div>
+          <div class="profile-stat-value">{{ profile.created_at or '—' }}</div>
+        </div>
+        <div class="profile-stat-box">
+          <div class="profile-stat-label">Vacancies Posted</div>
+          <div class="profile-stat-value">{{ total_vacancies }}</div>
+        </div>
+        <div class="profile-stat-box">
+          <div class="profile-stat-label">Applications Reviewed</div>
+          <div class="profile-stat-value">{{ reviewed_applications }}</div>
+        </div>
+      </div>
+
+      <div class="panel-header" style="margin-top:18px;">
+        <div>
+          <div class="panel-eyebrow">Security</div>
+          <h3>Change Password & Alerts</h3>
+        </div>
+      </div>
+
+      <form method="post" action="/hr/profile" class="security-section" id="security">
+        <div class="security-field">
+          <label for="current_password">Current Password</label>
+          <input type="password" id="current_password" name="current_password" placeholder="Enter current password"/>
+        </div>
+        <div class="security-field">
+          <label for="new_password">New Password</label>
+          <input type="password" id="new_password" name="new_password" placeholder="Create a new password"/>
+        </div>
+        <div class="security-field">
+          <label for="confirm_password">Confirm New Password</label>
+          <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password"/>
+        </div>
+
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-title">Email Notifications</div>
+            <div class="toggle-copy">Enable updates about applications and hiring activity.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" name="email_notifications" {% if profile.email_notifications %}checked{% endif %}>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="profile-form-actions" style="margin-top:0;">
+          <button class="btn btn-secondary" type="submit">🔒 Update Password</button>
+        </div>
+      </form>
+    </aside>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.profile-shell{display:flex;flex-direction:column;gap:18px}
+.profile-overview-card{display:flex;align-items:center;gap:20px;background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:22px;box-shadow:0 8px 20px rgba(15,23,42,0.06)}
+.profile-avatar-wrap{position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.profile-avatar-image,.profile-avatar-fallback{width:96px;height:96px;border-radius:999px;border:3px solid #d1fae5;object-fit:cover;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#10b981,#059669);color:#fff;font-weight:800;font-size:1.4rem;box-shadow:0 10px 28px rgba(16,185,129,.18)}
+.profile-avatar-edit{position:absolute;right:-4px;bottom:-2px;border:none;border-radius:999px;background:#111827;color:#fff;padding:6px 10px;font-size:.61rem;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(17,24,39,.25)}
+.profile-overview-copy{display:flex;flex-direction:column;gap:12px;flex:1}
+.profile-overview-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.profile-eyebrow{font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#10b981;margin-bottom:4px}
+.profile-name{margin:0;font-size:1.5rem;font-weight:800;color:#111827}
+.profile-subtitle{font-size:.88rem;color:#6b7280;margin-top:4px}
+.profile-contact-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.profile-contact-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:.82rem}
+.contact-label{font-weight:700;color:#6b7280}
+.contact-value{color:#111827;font-weight:600}
+.profile-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+.profile-panel{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:18px;box-shadow:0 8px 16px rgba(15,23,42,0.05)}
+.panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.panel-header h3{margin:0;font-size:1rem;font-weight:800;color:#111827}
+.panel-eyebrow{font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#10b981;margin-bottom:4px}
+.panel-badge{display:inline-flex;align-items:center;border-radius:999px;background:#d1fae5;color:#065f46;padding:4px 8px;font-size:.58rem;font-weight:800}
+.profile-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.form-field{display:flex;flex-direction:column;gap:6px}
+.form-field label{font-size:.72rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.08em}
+.form-field input,.form-field textarea{width:100%;border:1.5px solid #d1d5db;border-radius:10px;padding:10px 11px;font-size:.88rem;color:#111827;background:#fff;box-sizing:border-box}
+.form-field textarea{resize:vertical;min-height:120px;font-family:inherit}
+.form-full{grid-column:1 / -1}
+.profile-form-actions{display:flex;justify-content:flex-end;margin-top:16px}
+.profile-stats-list{display:flex;flex-direction:column;gap:10px}
+.profile-stat-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px}
+.profile-stat-label{font-size:.67rem;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.profile-stat-value{font-size:1.15rem;font-weight:800;color:#111827}
+.security-section{display:flex;flex-direction:column;gap:10px}
+.security-field{display:flex;flex-direction:column;gap:6px}
+.security-field label{font-size:.72rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.08em}
+.security-field input{width:100%;border:1.5px solid #d1d5db;border-radius:10px;padding:10px 11px;font-size:.88rem;color:#111827;box-sizing:border-box}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin-top:4px}
+.toggle-title{font-size:.84rem;font-weight:800;color:#111827}
+.toggle-copy{font-size:.74rem;color:#6b7280;margin-top:2px}
+.switch{position:relative;display:inline-flex;width:46px;height:26px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.2s}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:4px;bottom:4px;background:#fff;border-radius:999px;transition:.2s}
+.switch input:checked + .slider{background:#10b981}
+.switch input:checked + .slider:before{transform:translateX(20px)}
+@media (max-width: 900px){
+  .profile-overview-card{align-items:flex-start}
+  .profile-grid{grid-template-columns:1fr}
+  .profile-form-grid{grid-template-columns:1fr}
+}
+</style>
+
+<script>
+const avatarUploadTrigger = document.getElementById('avatarUploadTrigger');
+const avatarInput = document.getElementById('avatarInput');
+const avatarPreview = document.getElementById('profileAvatarPreview');
+
+if (avatarUploadTrigger && avatarInput) {
+  avatarUploadTrigger.addEventListener('click', () => avatarInput.click());
+  avatarInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Please choose an image file for your avatar.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      if (avatarPreview.tagName === 'IMG') {
+        avatarPreview.src = evt.target.result;
+      } else {
+        avatarPreview.outerHTML = `<img src="${evt.target.result}" alt="Profile avatar" class="profile-avatar-image" id="profileAvatarPreview"/>`;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const successMessage = {{ (success_message or '')|tojson }};
+if (successMessage) {
+  showToast(successMessage, 'success');
+}
+</script>
+{% endblock %}

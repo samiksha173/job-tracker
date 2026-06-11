@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Flask app",
+			"type": "shell",
+			"command": "\"C:/Program Files/Python311/python.exe\" -c \"from app import create_app; app=create_app(); app.run(host='0.0.0.0', port=5000, debug=True)\"",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

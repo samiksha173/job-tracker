@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>{% block title %}HireBloom — Job Tracker{% endblock %}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
   <style>
 /* ── Reset ── */
 *{box-sizing:border-box;margin:0;padding:0}
@@ -41,6 +41,7 @@ input,select,textarea{font-family:inherit}
 /* ── Animations ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastSlideIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* ── Navbar ── */
@@ -118,12 +119,37 @@ input,select,textarea{font-family:inherit}
   transition:all .2s;position:relative
 }
 .notif-btn:hover{background:var(--pk100);color:var(--pk500)}
+.notif-btn.has-items{color:var(--pk500);background:var(--pk100);border-color:var(--pk200)}
 .notif-dot{
   position:absolute;top:7px;right:7px;
   width:7px;height:7px;
   background:var(--pk400);border-radius:50%;
   border:1.5px solid #fff
 }
+.notif-dot.hidden{display:none}
+.notif-count{
+  position:absolute;top:-5px;right:-5px;
+  min-width:16px;height:16px;padding:0 4px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:99px;background:var(--pk500);color:#fff;
+  border:2px solid #fff;font-size:.58rem;font-weight:800;line-height:1
+}
+.notif-panel{
+  position:absolute;top:48px;right:54px;width:min(340px,calc(100vw - 32px));
+  background:#fff;border:1.5px solid var(--border);border-radius:16px;
+  box-shadow:0 18px 48px rgba(219,39,119,.18);padding:12px;z-index:120;
+  animation:slideIn .2s ease both
+}
+.notif-panel.hidden{display:none}
+.notif-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:2px 2px 8px;border-bottom:1px solid var(--pk100)}
+.notif-title{font-size:.86rem;font-weight:800;color:var(--text)}
+.notif-clear{border:none;background:var(--pk50);color:var(--pk500);font-size:.7rem;font-weight:700;border-radius:999px;padding:4px 10px}
+.notif-list{display:flex;flex-direction:column;gap:8px;max-height:330px;overflow:auto}
+.notif-item{display:flex;gap:10px;padding:10px;border-radius:12px;background:var(--pk50);border:1px solid var(--pk100)}
+.notif-item-icon{width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;color:var(--pk500);font-size:.95rem;border:1px solid var(--pk200)}
+.notif-item-title{font-size:.8rem;font-weight:800;color:var(--text);margin-bottom:2px}
+.notif-item-text{font-size:.74rem;color:var(--text2);line-height:1.45}
+.notif-empty{text-align:center;padding:22px 10px;color:var(--text3);font-size:.82rem}
 .avatar{
   width:36px;height:36px;
   background:linear-gradient(135deg,var(--pk300),var(--pk600));
@@ -394,18 +420,33 @@ fieldset input:focus,fieldset select:focus,fieldset textarea:focus{border-color:
 
 /* ── Toast ── */
 .toast{
-  position:fixed;bottom:26px;right:26px;
-  padding:13px 22px;border-radius:12px;
-  font-size:.88rem;font-weight:600;
-  z-index:999;box-shadow:0 6px 22px rgba(0,0,0,.14);
-  animation:fadeUp .3s ease;
-  display:flex;align-items:center;gap:8px;
-  max-width:340px
+  position:fixed;bottom:24px;right:24px;
+  display:flex;align-items:flex-start;gap:10px;
+  max-width:min(90vw,360px);
+  padding:14px 16px;
+  border-radius:16px;
+  font-size:.88rem;font-weight:700;
+  line-height:1.35;
+  z-index:999;
+  box-shadow:0 20px 55px -26px rgba(219,39,119,0.55),0 12px 24px -18px rgba(0,0,0,0.28);
+  backdrop-filter:blur(6px);
+  animation:toastSlideIn .35s ease;
+  pointer-events:none;
 }
+.toast-icon{
+  width:20px;height:20px;border-radius:999px;
+  display:grid;place-items:center;
+  font-size:.68rem;font-weight:900;
+  flex-shrink:0;
+  margin-top:1px;
+  background:rgba(255,255,255,0.5);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.35)
+}
+.toast-text{display:flex;align-items:center}
 .toast.hidden{display:none!important}
-.toast-success{background:#f0fdf4;color:#166534;border:1.5px solid #86efac}
-.toast-error  {background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5}
-.toast-info   {background:var(--pk50);color:var(--pk600);border:1.5px solid var(--pk200)}
+.toast-success{background:linear-gradient(180deg,#fff5fb,#ffe5f1);color:#9a1e60;border:1.5px solid rgba(236,72,153,0.22)}
+.toast-error  {background:linear-gradient(180deg,#fff7f7,#ffe7e7);color:#b42318;border:1.5px solid rgba(248,113,113,0.28)}
+.toast-info   {background:linear-gradient(180deg,#fffafc,#fff0f6);color:var(--pk600);border:1.5px solid rgba(236,72,153,0.18)}
 
 /* ── Empty / Loading ── */
 .empty,.loading{text-align:center;padding:28px;color:var(--text3);font-size:.9rem}
@@ -544,8 +585,10 @@ fieldset input:focus,fieldset select:focus,fieldset textarea:focus{border-color:
 .src-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--pk50);color:var(--text2);font-size:.78rem;font-weight:600;transition:.15s}
 .src-btn:hover{background:var(--pk100);border-color:var(--pk300);color:var(--pk500)}
 .src-btn.active{background:var(--pk100);border-color:var(--pk400);color:var(--pk600)}
-.job-card{background:var(--white);border-radius:14px;padding:18px;margin-bottom:12px;border:1.5px solid var(--border);box-shadow:var(--card-shadow);transition:all .2s;animation:fadeUp .3s ease both}
-.job-card:hover{transform:translateY(-2px);box-shadow:var(--card-shadow-hover);border-color:var(--pk200)}
+.job-results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:stretch;width:100%}
+.job-results-grid > .job-card{display:flex;flex-direction:column;height:100%}
+.job-card{background:linear-gradient(180deg,rgba(255,255,255,0.985),rgba(255,247,251,0.97));border-radius:20px;padding:20px;margin-bottom:0;border:1.5px solid rgba(244,194,216,0.9);box-shadow:0 18px 40px -28px rgba(219,39,119,0.55);transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;animation:fadeUp .3s ease both;width:100%}
+.job-card:hover{transform:translateY(-5px);box-shadow:0 20px 50px -28px rgba(219,39,119,0.72),0 16px 26px -20px rgba(0,0,0,0.2);border-color:rgba(236,72,153,0.45)}
 .job-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .job-source{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px}
 .src-linkedin{background:#dbeafe;color:#1e40af}
@@ -571,8 +614,11 @@ fieldset input:focus,fieldset select:focus,fieldset textarea:focus{border-color:
 .dash-footer{text-align:center;padding:22px 0 10px;font-size:.78rem;color:var(--text3)}
   </style>
   {% block head %}{% endblock %}
+{% set nav_user_name = session.get('user_name', 'User') %}
+{% set nav_name_parts = nav_user_name.split() %}
+{% set nav_initials = ((nav_name_parts[0][0] if nav_name_parts else 'U') ~ (nav_name_parts[1][0] if nav_name_parts|length > 1 else ''))|upper %}
 </head>
-<body>
+<body data-user-name="{{ nav_user_name|e }}">
 
 <!-- ── Navbar ── -->
 <nav class="navbar">
@@ -589,9 +635,16 @@ fieldset input:focus,fieldset select:focus,fieldset textarea:focus{border-color:
     <a href="/tools"       class="{% if active=='tools'       %}active{% endif %}">Tools</a>
   </div>
   <div class="nav-right">
-    <button class="notif-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+    <button class="notif-btn" id="navNotifBtn" title="Notifications" aria-label="Notifications" aria-expanded="false">🔔<span class="notif-dot hidden" id="navNotifDot"></span><span class="notif-count hidden" id="navNotifCount">0</span></button>
+    <div class="notif-panel hidden" id="navNotifPanel">
+      <div class="notif-head">
+        <span class="notif-title">Notifications</span>
+        <button class="notif-clear" type="button" id="navNotifClear">Mark read</button>
+      </div>
+      <div class="notif-list" id="navNotifList"><div class="notif-empty">Loading notifications...</div></div>
+    </div>
     <a href="/application" class="nav-new-btn">+ New Application</a>
-    <div class="avatar">AN</div>
+    <div class="avatar" title="{{ nav_user_name }}">{{ nav_initials }}</div>
     <a href="/logout" class="sign-out-btn">Sign out</a>
   </div>
   <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
@@ -623,11 +676,103 @@ function toggleMobileMenu(){
 function showToast(msg, type='info'){
   const t = document.getElementById('toast');
   t.className = 'toast toast-'+type;
-  t.textContent = msg;
+  t.replaceChildren();
+
+  const iconMap = {success:'✓', error:'! ', info:'✦'};
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+  icon.textContent = iconMap[type] || '•';
+
+  const text = document.createElement('span');
+  text.className = 'toast-text';
+  text.textContent = String(msg || '');
+
+  t.append(icon, text);
   t.classList.remove('hidden');
   clearTimeout(t._to);
-  t._to = setTimeout(()=>t.classList.add('hidden'), 3200);
+  t._to = setTimeout(()=>t.classList.add('hidden'), 3000);
 }
+
+const NAV_USER_NAME = document.body.dataset.userName || 'User';
+function hbEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function hbFirstName(name){ return (String(name||'User').trim().split(/\s+/)[0] || 'User'); }
+function hbBuildNotifications(apps){
+  const firstName = hbFirstName(NAV_USER_NAME);
+  const items = [{
+    icon: '👋',
+    title: `Welcome, ${firstName}`,
+    text: 'Your applicant dashboard is ready with your latest job activity.'
+  }];
+  const recent = (Array.isArray(apps) ? apps : []).slice(0, 3);
+  recent.forEach(a=>{
+    items.push({
+      icon: '📩',
+      title: 'New application tracked',
+      text: `${a.position || 'Role'} at ${a.company || 'Company'} is saved in your dashboard.`
+    });
+  });
+  (Array.isArray(apps) ? apps : []).filter(a=>a.hr_status && a.hr_status !== 'Pending').slice(0, 2).forEach(a=>{
+    items.push({
+      icon: '✨',
+      title: 'HR update',
+      text: `${a.company || 'Company'} updated your status to ${a.hr_status}.`
+    });
+  });
+  return items;
+}
+function hbRenderNavNotifications(items){
+  const list = document.getElementById('navNotifList');
+  const dot = document.getElementById('navNotifDot');
+  const count = document.getElementById('navNotifCount');
+  const btn = document.getElementById('navNotifBtn');
+  if(!list || !dot || !count || !btn) return;
+  if(!items.length){
+    list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+    dot.classList.add('hidden'); count.classList.add('hidden'); btn.classList.remove('has-items');
+    return;
+  }
+  list.innerHTML = items.map(n=>`<div class="notif-item"><div class="notif-item-icon">${n.icon}</div><div><div class="notif-item-title">${hbEsc(n.title)}</div><div class="notif-item-text">${hbEsc(n.text)}</div></div></div>`).join('');
+  const unread = Math.min(items.length, 9);
+  count.textContent = unread;
+  dot.classList.remove('hidden');
+  count.classList.remove('hidden');
+  btn.classList.add('has-items');
+}
+async function refreshNavNotifications(){
+  try{
+    const apps = await fetch('/api/applications').then(r=>r.ok?r.json():[]);
+    hbRenderNavNotifications(hbBuildNotifications(apps));
+  }catch(e){
+    hbRenderNavNotifications(hbBuildNotifications([]));
+  }
+}
+window.refreshNavNotifications = refreshNavNotifications;
+const navNotifBtn = document.getElementById('navNotifBtn');
+const navNotifClear = document.getElementById('navNotifClear');
+if(navNotifBtn) navNotifBtn.addEventListener('click', e=>{
+  e.stopPropagation();
+  const panel = document.getElementById('navNotifPanel');
+  const btn = document.getElementById('navNotifBtn');
+  const open = panel.classList.toggle('hidden') === false;
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+if(navNotifClear) navNotifClear.addEventListener('click', ()=>{
+  const dot = document.getElementById('navNotifDot');
+  const count = document.getElementById('navNotifCount');
+  const btn = document.getElementById('navNotifBtn');
+  if(dot) dot.classList.add('hidden');
+  if(count) count.classList.add('hidden');
+  if(btn) btn.classList.remove('has-items');
+});
+document.addEventListener('click', e=>{
+  const panel = document.getElementById('navNotifPanel');
+  const btn = document.getElementById('navNotifBtn');
+  if(panel && btn && !panel.contains(e.target) && !btn.contains(e.target)){
+    panel.classList.add('hidden');
+    btn.setAttribute('aria-expanded','false');
+  }
+});
+refreshNavNotifications();
 </script>
 {% block scripts %}{% endblock %}
 </body>

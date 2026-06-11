@@ -85,6 +85,15 @@
     .footer-link a,.footer-link span.link{color:#10b981;font-weight:600;text-decoration:none;cursor:pointer}
     .footer-link a:hover,.footer-link span.link:hover{text-decoration:underline}
 
+    /* Open Gmail button */
+    .gmail-btn{width:100%;padding:11px;border:2px solid #ea4335;border-radius:30px;
+      font-size:.93rem;font-weight:700;cursor:pointer;background:#fff;color:#ea4335;
+      transition:.25s;display:flex;align-items:center;justify-content:center;gap:8px;
+      margin-top:10px;text-decoration:none}
+    .gmail-btn:hover{background:#fef2f2;transform:translateY(-1px);
+      box-shadow:0 4px 14px rgba(234,67,53,.2)}
+    .gmail-btn svg{width:18px;height:18px;flex-shrink:0}
+
     /* WELCOME */
     #page-welcome .wlc-logo{display:flex;align-items:center;gap:10px;margin-bottom:36px}
     #page-welcome .wlc-logo span.icon{font-size:2rem}
@@ -225,6 +234,13 @@
       <span id="afp-btn-text">Send Reset Link →</span>
       <div class="spinner" id="afp-spinner"></div>
     </button>
+    <!-- Gmail open button — shown after success -->
+    <a id="afp-gmail-btn" class="gmail-btn" style="display:none" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
+      </svg>
+      Open Gmail Inbox →
+    </a>
     <div class="footer-link" style="margin-top:14px"><span class="link" onclick="goto('page-applicant-login')">← Back to Sign In</span></div>
   </div>
 </div>
@@ -374,6 +390,13 @@
       <span id="hfp-btn-text">Send Reset Link →</span>
       <div class="spinner" id="hfp-spinner"></div>
     </button>
+    <!-- Gmail open button — shown after success -->
+    <a id="hfp-gmail-btn" class="gmail-btn" style="display:none" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
+      </svg>
+      Open Gmail Inbox →
+    </a>
     <div class="footer-link" style="margin-top:14px"><span class="link" onclick="goto('page-hr-login')">← Back to Sign In</span></div>
   </div>
 </div>
@@ -514,6 +537,11 @@ function goto(id) {
   window.scrollTo(0, 0);
 }
 function openForgot(role) {
+  // Hide Gmail buttons when reopening forgot page
+  const afpBtn = document.getElementById('afp-gmail-btn');
+  const hfpBtn = document.getElementById('hfp-gmail-btn');
+  if (afpBtn) afpBtn.style.display = 'none';
+  if (hfpBtn) hfpBtn.style.display = 'none';
   goto(role === 'hr' ? 'page-hr-forgot' : 'page-applicant-forgot');
 }
 
@@ -597,11 +625,6 @@ function getRules(pfxBase) {
 
 /* ══════════════════════════════════════════════════════════════
    LOGIN
-   Posts JSON to Flask /login route.
-   Flask returns { success, redirect, role } or { success:false, message }
-   On success → follow the redirect URL returned by Flask.
-   ✅ Applicant  → Flask sends redirect to  /          (index.html)
-   ✅ HR Manager → Flask sends redirect to  /hr/dashboard
 ══════════════════════════════════════════════════════════════ */
 async function handleLogin(role) {
   const isHR  = role === 'hr';
@@ -639,7 +662,6 @@ async function handleLogin(role) {
     const data = await res.json();
 
     if (data.success) {
-      // Flask tells us exactly where to go — follow it
       window.location.href = data.redirect;
     } else {
       showAlert(errId, data.message || 'Invalid credentials. Please try again.');
@@ -653,11 +675,6 @@ async function handleLogin(role) {
 
 /* ══════════════════════════════════════════════════════════════
    REGISTER
-   Posts JSON to Flask /register route.
-   Flask returns { success, redirect } or { success:false, message }
-   On success → show success message, then redirect to login tab.
-   HR extra fields (company, empid, dept) are stored in the name
-   field as a combined string so they reach the Flask User model.
 ══════════════════════════════════════════════════════════════ */
 async function handleRegister(role) {
   const isHR  = role === 'hr';
@@ -669,7 +686,6 @@ async function handleRegister(role) {
   let valid = true;
   let payload = { role };
 
-  /* ── HR validation ── */
   if (isHR) {
     const fname   = document.getElementById('hr-fname').value.trim();
     const lname   = document.getElementById('hr-lname').value.trim();
@@ -698,10 +714,8 @@ async function handleRegister(role) {
     if (!terms) { termsErr && termsErr.classList.add('show'); valid=false; } else { termsErr && termsErr.classList.remove('show'); }
 
     if (!valid) return;
-    // Combine into name field for Flask User model (name is the only name field)
     payload = { role, name: fname + ' ' + lname, email, password: pass };
 
-  /* ── Applicant validation ── */
   } else {
     const name    = document.getElementById('ar-name').value.trim();
     const email   = document.getElementById('ar-email').value.trim();
@@ -719,7 +733,6 @@ async function handleRegister(role) {
     payload = { role, name, email, password: pass };
   }
 
-  /* ── POST to Flask /register ── */
   const btnTextId = isHR ? 'hr-btn-text' : 'ar-btn-text';
   const spinnerId = isHR ? 'hr-spinner'  : 'ar-spinner';
   const pageBtn   = document.getElementById(isHR ? 'hr-register-btn' : null) ||
@@ -735,7 +748,6 @@ async function handleRegister(role) {
     const data = await res.json();
 
     if (data.success) {
-      // Registration also logs in via Flask session — go straight to dashboard
       window.location.href = data.redirect;
     } else {
       showAlert(errId, data.message || 'Registration failed. Please try again.');
@@ -747,16 +759,27 @@ async function handleRegister(role) {
   }
 }
 
-/* ══════════════════════════════
-   FORGOT PASSWORD (UI only)
-══════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   FORGOT PASSWORD
+   After showing success message, reveals "Open Gmail Inbox" button.
+   If the entered email is a Gmail address, links directly to that
+   account's inbox using Gmail's multi-account URL (/mail/u/0/ etc).
+   For non-Gmail addresses, still links to gmail.com/inbox as a
+   convenience shortcut (user can switch accounts themselves).
+══════════════════════════════════════════════════════════════ */
 async function handleForgot(role) {
   const isHR = role === 'hr';
   const pfx  = isHR ? 'hfp' : 'afp';
   hideAlert('al-' + pfx + '-err');
   hideAlert('al-' + pfx + '-ok');
 
-  const email = document.getElementById(pfx + '-email').value.trim();
+  // Hide Gmail button in case it was shown from a previous attempt
+  const gmailBtn = document.getElementById(pfx + '-gmail-btn');
+  if (gmailBtn) gmailBtn.style.display = 'none';
+
+  const emailInput = document.getElementById(pfx + '-email');
+  const email = emailInput.value.trim();
+
   if (!isEmail(email)) {
     setField(pfx + '-email', pfx + '-email-err', false, 'Please enter a valid email.');
     return;
@@ -766,11 +789,60 @@ async function handleForgot(role) {
   const btn = document.querySelector('#page-' + (isHR ? 'hr' : 'applicant') + '-forgot .btn');
   setBtnLoading(pfx + '-btn-text', pfx + '-spinner', btn, true);
 
-  await new Promise(r => setTimeout(r, 800));
-  showAlert('al-' + pfx + '-ok', `If an account exists for ${email}, a reset link has been sent to your inbox.`);
-  document.getElementById(pfx + '-email').value = '';
-  document.getElementById(pfx + '-email').classList.remove('error','valid');
+  // Call Flask /forgot-password endpoint (or simulate if not yet implemented)
+  try {
+    const res = await fetch('/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, role })
+    });
+    // Treat any response (even 404/500) gracefully — always show success message
+    // to avoid leaking whether an email is registered (security best practice)
+  } catch (_) {
+    // Network error — still show the success message for UX consistency
+  }
+
+  // Always show success (security best practice: never confirm if email exists)
+  showAlert('al-' + pfx + '-ok',
+    `If an account exists for ${email}, a reset link has been sent to your inbox.`);
+
+  // Clear the email field
+  emailInput.value = '';
+  emailInput.classList.remove('error', 'valid');
+
+  // Build Gmail inbox URL — deep-link to the correct account if possible
+  const gmailUrl = buildGmailUrl(email);
+  if (gmailBtn) {
+    gmailBtn.href = gmailUrl;
+    gmailBtn.style.display = 'flex';
+  }
+
   setBtnLoading(pfx + '-btn-text', pfx + '-spinner', btn, false);
+}
+
+/**
+ * Builds the best Gmail inbox URL for the given email.
+ * - Gmail / Google Workspace address → open that specific account's inbox
+ * - Any other provider → open gmail.com inbox (user can check their own mail)
+ *
+ * Gmail's multi-account selector:
+ *   https://mail.google.com/mail/u/0/#inbox  → first signed-in account
+ * To target a specific address, use:
+ *   https://mail.google.com/mail/u/{email}/#inbox
+ * Google resolves the email to whichever slot it occupies.
+ */
+function buildGmailUrl(email) {
+  const domain = email.split('@')[1] || '';
+  const isGmail = domain === 'gmail.com';
+  const isGSuite = !isGmail && domain.length > 0; // could be Workspace
+
+  if (isGmail || isGSuite) {
+    // Use the email-based selector so Gmail picks the right account
+    return `https://mail.google.com/mail/u/${encodeURIComponent(email)}/#inbox`;
+  }
+
+  // Non-Google email — just open Gmail inbox as a convenience
+  return 'https://mail.google.com/mail/u/0/#inbox';
 }
 </script>
 </body>

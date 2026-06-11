@@ -9,7 +9,7 @@
 </head>
 <body class="hr-body">
 
-<!-- ── TOP NAVBAR (matches screenshot) ── -->
+<!-- ── TOP NAVBAR ── -->
 <nav class="hr-topnav">
   <a href="/hr/dashboard" class="hr-brand-top">
     <span class="brand-emoji">💼</span>
@@ -29,11 +29,40 @@
        class="hr-topnav-link {% if active=='hr_applicants' %}active{% endif %}">
       Applicants
     </a>
+    <a href="/hr/vacancies"
+       class="hr-topnav-link {% if active=='hr_vacancies' %}active{% endif %}">
+      📢 Vacancies
+    </a>
   </div>
 
   <div class="hr-topnav-right">
-    <div class="hr-avatar-btn" id="hrAvatar">HR</div>
-    <a href="/logout" class="hr-signout">Sign out</a>
+    <div class="hr-notif-wrap">
+      <button class="hr-notif-btn" id="hrNotificationBell" type="button" aria-label="Notifications">
+        🔔
+        <span class="hr-notif-count hidden" id="hrNotifCount">0</span>
+      </button>
+      <div class="hr-notif-panel hidden" id="hrNotifPanel">
+        <div class="hr-notif-panel-head">
+          <div>
+            <div class="hr-notif-panel-title">Notifications</div>
+            <div class="hr-notif-panel-sub">Recent hiring updates</div>
+          </div>
+          <button class="hr-notif-mark-all" id="markAllRead" type="button">Mark all as read</button>
+        </div>
+        <div class="hr-notif-list" id="hrNotifList"></div>
+      </div>
+    </div>
+
+    <div class="hr-profile-menu-wrap">
+      <button class="hr-avatar-btn" id="hrAvatarButton" type="button" aria-label="Profile menu">
+        <span id="hrAvatarText">HR</span>
+      </button>
+      <div class="hr-profile-menu hidden" id="hrProfileMenu">
+        <a class="hr-profile-menu-item" href="/hr/profile">👤 My Profile</a>
+        <a class="hr-profile-menu-item" href="/hr/profile#security">⚙️ Settings</a>
+        <a class="hr-profile-menu-item danger" href="/logout">↩️ Sign Out</a>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -58,12 +87,152 @@
 
 <script src="/static/main.js"></script>
 <script>
-// Load HR user info
+const hrAvatarButton = document.getElementById('hrAvatarButton');
+const hrAvatarText = document.getElementById('hrAvatarText');
+const hrProfileMenu = document.getElementById('hrProfileMenu');
+
 fetch('/api/me').then(r => r.json()).then(u => {
   const n = u.name || 'HR';
-  document.getElementById('hrAvatar').textContent =
-    n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const initials = n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'HR';
+
+  if (u.avatar_url) {
+    if (hrAvatarButton && !document.getElementById('hrAvatarImage')) {
+      const img = document.createElement('img');
+      img.id = 'hrAvatarImage';
+      img.src = u.avatar_url;
+      img.alt = `${n} avatar`;
+      img.className = 'hr-avatar-image';
+      hrAvatarButton.innerHTML = '';
+      hrAvatarButton.appendChild(img);
+    }
+  } else {
+    hrAvatarText.textContent = initials;
+  }
 }).catch(() => {});
+
+if (hrAvatarButton && hrProfileMenu) {
+  hrAvatarButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hrProfileMenu.classList.toggle('hidden');
+  });
+}
+
+const notifBell = document.getElementById('hrNotificationBell');
+const notifPanel = document.getElementById('hrNotifPanel');
+const notifList = document.getElementById('hrNotifList');
+const notifBadge = document.getElementById('hrNotifCount');
+const markAllBtn = document.getElementById('markAllRead');
+
+function formatTimeLabel(time) {
+  if (!time) return 'just now';
+  const input = String(time).replace(' ', 'T');
+  const dt = new Date(input);
+  if (Number.isNaN(dt.getTime())) return 'just now';
+  const diff = Date.now() - dt.getTime();
+  const mins = Math.floor(diff / (1000 * 60));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function renderNotifications(items) {
+  if (!notifList) return;
+  if (!items.length) {
+    notifList.innerHTML = '<div class="hr-notif-empty">No notifications yet.</div>';
+    return;
+  }
+
+  notifList.innerHTML = items.map(item => `
+    <article class="hr-notif-item ${item.is_read ? '' : 'unread'}" data-id="${item.id}">
+      <div class="hr-notif-left">
+        <div class="hr-notif-icon">${item.icon || '🔔'}</div>
+        <div class="hr-notif-body">
+          <div class="hr-notif-header">
+            <div class="hr-notif-title">${item.title || 'Notification'}</div>
+            ${item.is_read ? '' : '<span class="hr-notif-dot"></span>'}
+          </div>
+          <div class="hr-notif-text">${item.message || 'No details available.'}</div>
+          <div class="hr-notif-meta">${item.relative_time || formatTimeLabel(item.created_at)}</div>
+        </div>
+      </div>
+      <button class="hr-notif-action" type="button" data-mark-id="${item.id}">Mark as read</button>
+    </article>
+  `).join('');
+
+  notifList.querySelectorAll('[data-mark-id]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = Number(btn.dataset.markId);
+      if (!id) return;
+      await fetch(`/hr/api/notifications/${id}/read`, { method: 'POST' });
+      await loadNotifications();
+    });
+  });
+}
+
+async function loadNotifications() {
+  if (!notifList) return [];
+  try {
+    const res = await fetch('/hr/api/notifications');
+    const items = res.ok ? await res.json() : [];
+    renderNotifications(items);
+
+    const unread = items.filter(item => !item.is_read).length;
+    if (notifBadge) {
+      notifBadge.textContent = unread;
+      notifBadge.classList.toggle('hidden', unread === 0);
+    }
+    return items;
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+async function markAllRead() {
+  try {
+    await fetch('/hr/api/notifications/read-all', { method: 'POST' });
+    await loadNotifications();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+if (notifBell && notifPanel) {
+  notifBell.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    notifPanel.classList.toggle('hidden');
+    if (!notifPanel.classList.contains('hidden')) {
+      await loadNotifications();
+    }
+  });
+}
+
+if (markAllBtn) {
+  markAllBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await markAllRead();
+  });
+}
+
+document.addEventListener('click', (e) => {
+  if (notifPanel && !notifPanel.classList.contains('hidden')) {
+    if (!notifPanel.contains(e.target) && e.target !== notifBell) {
+      notifPanel.classList.add('hidden');
+    }
+  }
+
+  if (hrProfileMenu && !hrProfileMenu.classList.contains('hidden')) {
+    if (!hrProfileMenu.contains(e.target) && e.target !== hrAvatarButton) {
+      hrProfileMenu.classList.add('hidden');
+    }
+  }
+});
+
+loadNotifications();
 
 function closeModal() {
   document.getElementById('appModal').classList.add('hidden');

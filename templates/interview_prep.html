@@ -1,0 +1,898 @@
+{% extends "base.html" %}
+
+{% block title %}AI Interview Prep Lab — HireBloom{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:24px">
+  <div class="page-header">
+    <div class="greeting-chip">✨ AI Interview Prep Lab</div>
+    <h1>Mock interviews, scoring, and practice videos</h1>
+    <p>Run a timed mock interview, review your score, save your report, and revisit curated interview prep videos.</p>
+  </div>
+
+  <div class="stats-grid interview-summary-stats">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:linear-gradient(135deg,#fbcfe8,#f472b6);color:#fff">🧪</div>
+      <div class="stat-body">
+        <div class="stat-num" id="prep-card-count">0</div>
+        <div class="stat-label">Mock tests run</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:linear-gradient(135deg,#fde68a,#f59e0b);color:#fff">🎯</div>
+      <div class="stat-body">
+        <div class="stat-num" id="prep-card-score">0</div>
+        <div class="stat-label">Avg. score</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:linear-gradient(135deg,#bfdbfe,#3b82f6);color:#fff">📚</div>
+      <div class="stat-body">
+        <div class="stat-num">200+</div>
+        <div class="stat-label">Practice questions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="interview-prep-grid-layout">
+    <div class="interview-prep-main-panel">
+      <section class="section-card interview-prep-section-card">
+        <div class="section-header">
+          <h2>Setup Panel</h2>
+          <span class="interview-coach-badge">Live mock test</span>
+        </div>
+        <div class="interview-prep-form-grid">
+          <label class="interview-prep-field">
+            <span>Job role</span>
+            <select id="mock-role" class="filter-select">
+              <option value="SDE">SDE</option>
+              <option value="Backend Dev">Backend Dev</option>
+              <option value="Frontend Dev">Frontend Dev</option>
+              <option value="DevOps Engineer">DevOps Engineer</option>
+              <option value="QA Engineer">QA Engineer</option>
+              <option value="Data Analyst">Data Analyst</option>
+              <option value="Product Manager">Product Manager</option>
+              <option value="UX/UI Designer">UX/UI Designer</option>
+              <option value="Business Analyst">Business Analyst</option>
+              <option value="Marketing">Marketing</option>
+            </select>
+          </label>
+
+          <label class="interview-prep-field">
+            <span>Difficulty</span>
+            <select id="mock-difficulty" class="filter-select">
+              <option value="Easy">Easy</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </label>
+
+          <fieldset class="interview-prep-field interview-type-checkboxes" style="grid-column: span 2; padding-top: 10px;">
+            <legend>Question categories</legend>
+            <div class="checkbox-grid" style="display:grid;grid-template-columns:repeat(2,minmax(140px,1fr));gap:8px;">
+              <label><input type="checkbox" value="Technical" class="mock-type-checkbox" checked> Technical</label>
+              <label><input type="checkbox" value="Behavioural" class="mock-type-checkbox"> Behavioural</label>
+              <label><input type="checkbox" value="Situational" class="mock-type-checkbox"> Situational</label>
+              <label><input type="checkbox" value="System Design" class="mock-type-checkbox"> System Design</label>
+              <label><input type="checkbox" value="HR" class="mock-type-checkbox" checked> HR</label>
+              <label><input type="checkbox" value="Mixed" class="mock-type-checkbox"> Mixed</label>
+            </div>
+          </fieldset>
+
+          <label class="interview-prep-field">
+            <span>Answer language</span>
+            <select id="mock-language" class="filter-select">
+              <option value="English" selected>English</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Marathi">Marathi</option>
+              <option value="Tamil">Tamil</option>
+              <option value="Telugu">Telugu</option>
+              <option value="Bengali">Bengali</option>
+              <option value="Gujarati">Gujarati</option>
+              <option value="Kannada">Kannada</option>
+              <option value="Malayalam">Malayalam</option>
+            </select>
+          </label>
+
+          <label class="interview-prep-field">
+            <span>Number of questions</span>
+            <select id="mock-count" class="filter-select">
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="7">7</option>
+              <option value="10" selected>10</option>
+            </select>
+          </label>
+
+          <label class="interview-prep-field">
+            <span>Time per question</span>
+            <select id="mock-time" class="filter-select">
+              <option value="1">1 min</option>
+              <option value="2">2 min</option>
+              <option value="3" selected>3 min</option>
+              <option value="4">4 min</option>
+              <option value="5">5 min</option>
+            </select>
+          </label>
+
+          <div class="interview-prep-actions">
+            <button class="interview-coach-cta" id="start-mock-btn" type="button">Start Interview</button>
+            <button class="resume-secondary-button" id="reset-mock-btn" type="button">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-card interview-prep-section-card" id="mock-session-card" style="display:none">
+        <div class="section-header">
+          <h2>Live Mock Interview</h2>
+          <span class="interview-coach-badge" id="mock-session-meta">Question 0 of 0</span>
+        </div>
+
+        <div class="mock-chat-shell">
+          <div class="mock-chat-message interviewer">
+            <div class="mock-avatar">🤖</div>
+            <div class="mock-message-body">
+              <div class="mock-message-title">AI Interviewer</div>
+              <p id="current-question-text">Generate a mock interview to begin.</p>
+              <div class="question-tags-row" id="current-question-tags" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+                <span class="question-tag" style="background:#e0f2fe;color:#0369a1;padding:4px 10px;border-radius:999px;font-size:0.85rem;">Category: Mixed</span>
+                <span class="question-tag" style="background:#e7f5e1;color:#166534;padding:4px 10px;border-radius:999px;font-size:0.85rem;">Difficulty: Medium</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mock-timeline-row">
+          <div class="mock-timer-box">
+            <div class="mock-timer-label">Time left</div>
+            <div class="mock-timer-value" id="mock-timer">01:00</div>
+          </div>
+          <div class="mock-progress-box">
+            <div class="mock-progress-header">
+              <span>Progress</span>
+              <strong id="mock-progress-text">Question 0 of 0</strong>
+            </div>
+            <div class="mock-progress-track">
+              <div class="mock-progress-fill" id="mock-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mock-answer-panel">
+          <label class="interview-prep-field" style="margin-bottom:10px">
+            <span>Your answer</span>
+            <textarea id="mock-answer-input" rows="8" class="form-input" placeholder="Answer in the selected language. You can use voice input too."></textarea>
+          </label>
+
+          <div class="mock-controls">
+            <button class="resume-secondary-button" id="voice-input-btn" type="button">🎤 Speak Answer</button>
+            <button class="interview-coach-cta" id="hint-btn" type="button">Get Hint</button>
+            <button class="resume-secondary-button" id="skip-btn" type="button">Skip</button>
+          </div>
+
+          <div class="mock-actions-row">
+            <button class="interview-coach-cta" id="submit-answer-btn" type="button">Submit Answer</button>
+            <div id="hint-box" class="mock-hint-box">Hint will appear here.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-card interview-prep-section-card" id="results-card" style="display:none">
+        <div class="section-header">
+          <h2>Post-Interview Analysis</h2>
+          <span class="interview-coach-badge">Score report</span>
+        </div>
+
+        <div class="results-summary-grid">
+          <div class="score-ring-wrap">
+            <div class="score-ring" id="score-ring">
+              <div class="score-ring-core">
+                <div class="score-ring-value" id="overall-score-display">0</div>
+                <div class="score-ring-label">Overall Score</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analysis-copy-block">
+            <div class="analysis-stat-row">
+              <div class="analysis-stat-pill">Average Score: <strong id="avg-score-display">0/10</strong></div>
+              <div class="analysis-stat-pill">Questions: <strong id="question-count-display">0</strong></div>
+            </div>
+            <div class="analysis-grid-summary" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;">
+              <div class="analysis-mini-card">
+                <strong>Communication</strong>
+                <div id="comm-score-display">0/10</div>
+              </div>
+              <div class="analysis-mini-card">
+                <strong>Technical Depth</strong>
+                <div id="tech-score-display">0/10</div>
+              </div>
+              <div class="analysis-mini-card">
+                <strong>Problem Solving</strong>
+                <div id="problem-score-display">0/10</div>
+              </div>
+              <div class="analysis-mini-card">
+                <strong>Confidence</strong>
+                <div id="confidence-score-display">0/10</div>
+              </div>
+            </div>
+            <div class="analysis-summary-meta" style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
+              <span class="analysis-badge" id="level-label-display">Level: Competent</span>
+              <span class="analysis-badge" id="hireability-display">Hireability: Borderline</span>
+            </div>
+            <div class="analysis-summary-box" id="strengths-box"></div>
+            <div class="analysis-summary-box warning" id="improvements-box"></div>
+          </div>
+        </div>
+
+        <div class="analysis-charts-grid">
+          <div class="analysis-chart-card">
+            <div class="analysis-card-header">
+              <h3>Per-question breakdown</h3>
+            </div>
+            <div class="analysis-table-wrap">
+              <table class="analysis-breakdown-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Question</th>
+                    <th>Score</th>
+                    <th>Verdict</th>
+                    <th>Feedback</th>
+                  </tr>
+                </thead>
+                <tbody id="breakdown-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="analysis-chart-card">
+            <div class="analysis-card-header">
+              <h3>Skill radar</h3>
+            </div>
+            <div id="radar-chart" style="width:100%;height:320px"></div>
+          </div>
+        </div>
+
+        <div class="analysis-actions">
+          <button class="interview-coach-cta" id="retry-same-test-btn" type="button">Retry Same Test</button>
+          <button class="resume-secondary-button" id="new-test-btn" type="button">New Interview</button>
+          <button class="resume-secondary-button" id="save-report-btn" type="button">Save Report</button>
+          <button class="resume-secondary-button" id="download-cert-btn" type="button">Download Certificate</button>
+        </div>
+
+        <div id="certificate-card" style="display:none;position:absolute;left:-9999px;top:-9999px;width:900px;height:600px;padding:40px;background:#fff;border:1px solid #d1d5db;box-shadow:0 20px 40px rgba(15,23,42,0.12);font-family:'Segoe UI',sans-serif;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <div>
+              <div style="font-size:32px;font-weight:700;color:#111827;">Interview Performance Certificate</div>
+              <div style="margin-top:8px;font-size:14px;color:#6b7280;">Official mock interview summary from HireBloom</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:14px;color:#6b7280;">Date</div>
+              <div id="certificate-date" style="font-size:16px;font-weight:700;color:#111827;"></div>
+            </div>
+          </div>
+          <div style="background:#f8fafc;padding:24px;border-radius:20px;display:grid;grid-template-columns:1fr 1fr;gap:18px;min-height:360px;">
+            <div>
+              <div style="font-size:18px;color:#6b7280;margin-bottom:10px;">Awarded To</div>
+              <div id="certificate-name" style="font-size:32px;font-weight:700;color:#111827;">Candidate</div>
+              <div style="font-size:16px;color:#374151;margin-top:14px;">Role:</div>
+              <div id="certificate-role" style="font-size:20px;font-weight:600;color:#111827;">SDE</div>
+            </div>
+            <div style="border:1px dashed #d1d5db;padding:18px;border-radius:18px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
+              <div style="font-size:14px;color:#6b7280;letter-spacing:1px;margin-bottom:12px;">Overall Interview Score</div>
+              <div id="certificate-score" style="font-size:64px;font-weight:800;color:#111827;">0</div>
+              <div style="font-size:16px;color:#111827;margin-top:10px;">Level</div>
+              <div id="certificate-level" style="font-size:20px;font-weight:700;color:#0f766e;">Competent</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="interview-prep-side-panel">
+      <section class="section-card interview-prep-section-card">
+        <div class="section-header">
+          <h2>Practice Question Bank</h2>
+          <span class="interview-coach-badge">Filtered bank</span>
+        </div>
+
+        <div class="question-bank-controls">
+          <select id="bank-role" class="filter-select">
+            <option value="All">All roles</option>
+            <option value="SDE">SDE</option>
+            <option value="Backend Dev">Backend Dev</option>
+            <option value="Frontend Dev">Frontend Dev</option>
+            <option value="DevOps Engineer">DevOps Engineer</option>
+            <option value="QA Engineer">QA Engineer</option>
+            <option value="Data Analyst">Data Analyst</option>
+            <option value="Product Manager">Product Manager</option>
+            <option value="UX/UI Designer">UX/UI Designer</option>
+            <option value="Business Analyst">Business Analyst</option>
+            <option value="Marketing">Marketing</option>
+          </select>
+          <select id="bank-topic" class="filter-select">
+            <option value="All">All topics</option>
+            <option value="Data Structures">Data Structures</option>
+            <option value="Algorithms">Algorithms</option>
+            <option value="React">React</option>
+            <option value="SQL">SQL</option>
+            <option value="Leadership">Leadership</option>
+            <option value="Campaign Strategy">Campaign Strategy</option>
+            <option value="System Design">System Design</option>
+            <option value="Performance">Performance</option>
+            <option value="Communication">Communication</option>
+          </select>
+          <select id="bank-difficulty" class="filter-select">
+            <option value="All">All levels</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+          <input type="text" id="bank-search" class="filter-input" placeholder="Search question" style="width:100%;margin-top:8px">
+        </div>
+
+        <div class="question-bank-progress">
+          <div class="question-bank-progress-text">You've practiced <strong id="practice-count">0</strong>/200 questions</div>
+          <div class="mock-progress-track"><div class="mock-progress-fill" id="practice-progress-fill" style="width:0%"></div></div>
+        </div>
+
+        <div id="question-bank-list" class="question-bank-list"></div>
+      </section>
+
+      <section class="section-card interview-prep-section-card">
+        <div class="section-header">
+          <h2>YouTube Interview Prep</h2>
+          <span class="interview-coach-badge">Open now</span>
+        </div>
+
+        <div class="youtube-hub-list" id="youtube-hub-list"></div>
+      </section>
+
+      <section class="section-card interview-prep-section-card">
+        <div class="section-header">
+          <h2>Saved Reports</h2>
+          <span class="interview-coach-badge">History</span>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/recharts@2.10.4/umd/Recharts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const currentUserId = {{ current_user_id|tojson }};
+const ReactLib = window.React;
+const ReactDOMLib = window.ReactDOM;
+const RechartsLib = window.Recharts;
+const YouTubeVideos = [
+  {
+    title: 'Top interview tips for software engineers',
+    channel: 'Programming with Mosh',
+    duration: '12 min',
+    url: 'https://www.youtube.com/results?search_query=software+engineer+interview+preparation',
+    description: 'Interview preparation tips, answer frameworks, and confidence-building techniques.'
+  },
+  {
+    title: 'How to answer behavioral interview questions',
+    channel: 'The Interview Guys',
+    duration: '9 min',
+    url: 'https://www.youtube.com/results?search_query=behavioral+interview+questions+answers',
+    description: 'Learn how to structure STAR-based responses with a strong story.'
+  },
+  {
+    title: 'Technical interview problem solving',
+    channel: 'ByteByteGo',
+    duration: '14 min',
+    url: 'https://www.youtube.com/results?search_query=technical+interview+questions+coding+interview',
+    description: 'High-quality examples for explaining algorithms, debugging, and system thinking.'
+  }
+];
+
+let currentSessionConfig = null;
+let currentMockData = { questions: [], answers: [], currentIndex: 0, timerId: null, totalTime: 60 };
+let practiceBookmarks = JSON.parse(localStorage.getItem('interview-bookmarks') || '[]');
+let practiceCount = Number(localStorage.getItem('interview-practice-count') || 0);
+
+function escHtml(value){ return String(value||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function updatePracticeCount() {
+  const count = Math.min(200, practiceCount);
+  document.getElementById('practice-count').textContent = count;
+  document.getElementById('practice-progress-fill').style.width = `${Math.round((count / 200) * 100)}%`;
+}
+
+function renderYouTubeHub() {
+  const el = document.getElementById('youtube-hub-list');
+  el.innerHTML = YouTubeVideos.map(video => `
+    <article class="youtube-card">
+      <div class="youtube-thumb">🎬</div>
+      <div class="youtube-card-content">
+        <div class="youtube-card-title">${escHtml(video.title)}</div>
+        <div class="youtube-card-meta">${escHtml(video.channel)} • ${escHtml(video.duration)}</div>
+        <p>${escHtml(video.description)}</p>
+      </div>
+      <button class="interview-coach-cta" type="button" onclick="window.open('${video.url}', '_blank', 'noopener')">Open YouTube</button>
+    </article>
+  `).join('');
+}
+
+async function loadQuestionBank() {
+  const role = document.getElementById('bank-role').value;
+  const topic = document.getElementById('bank-topic').value;
+  const difficulty = document.getElementById('bank-difficulty').value;
+  const search = document.getElementById('bank-search').value;
+
+  const params = new URLSearchParams({ role, topic, difficulty, search, page: 1, per_page: 9 });
+  const res = await fetch(`/api/interview/question-bank?${params.toString()}`);
+  const data = await res.json();
+  const list = document.getElementById('question-bank-list');
+
+  if (!data.items.length) {
+    list.innerHTML = '<div class="interview-empty-state">No questions match that filter yet. Try another combination.</div>';
+    return;
+  }
+
+  list.innerHTML = data.items.map(item => {
+    const isBookmarked = practiceBookmarks.includes(item.id);
+    return `
+      <details class="question-bank-item" ${item.id === data.items[0].id ? 'open' : ''}>
+        <summary class="question-bank-summary">
+          <div>
+            <div class="question-bank-title">${escHtml(item.question)}</div>
+            <div class="question-bank-meta">${escHtml(item.role)} • ${escHtml(item.topic)} • ${escHtml(item.difficulty)}</div>
+          </div>
+          <div class="question-bank-action-row">
+            <button class="resume-secondary-button" type="button" onclick="event.preventDefault();toggleBookmark('${item.id}')">${isBookmarked ? '★ Saved' : '☆ Save'}</button>
+            <button class="interview-coach-cta" type="button" onclick="setBankQuestion('${item.role}', '${item.difficulty}', '${item.type}')">Use in test</button>
+          </div>
+        </summary>
+        <div class="question-bank-detail-box">
+          <p><strong>Expected focus:</strong> ${escHtml(item.expectedKeyPoints.join(', '))}</p>
+          <p><strong>Model answer:</strong> ${escHtml(item.modelAnswer)}</p>
+        </div>
+      </details>
+    `;
+  }).join('');
+}
+
+function toggleBookmark(questionId) {
+  const idx = practiceBookmarks.indexOf(questionId);
+  if (idx >= 0) practiceBookmarks.splice(idx, 1);
+  else practiceBookmarks.push(questionId);
+  localStorage.setItem('interview-bookmarks', JSON.stringify(practiceBookmarks));
+  loadQuestionBank();
+}
+
+function setBankQuestion(role, difficulty, type) {
+  document.getElementById('mock-role').value = role;
+  document.getElementById('mock-difficulty').value = difficulty;
+  document.getElementById('mock-type').value = type;
+  showToast('Question setup updated', 'success');
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch(`/api/interview/history/${currentUserId}`);
+    const payload = await res.json();
+    const historyList = document.getElementById('history-list');
+    if (!payload.history.length) {
+      historyList.innerHTML = '<div class="interview-empty-state">No saved reports yet. Finish a mock interview and save it.</div>';
+      return;
+    }
+
+    const totalTests = payload.history.length;
+    const avgScore = payload.history.reduce((sum, item)=>sum + Number(item.overall_score || 0),0)/totalTests;
+    document.getElementById('prep-card-count').textContent = totalTests;
+    document.getElementById('prep-card-score').textContent = avgScore ? avgScore.toFixed(1) : 0;
+
+    historyList.innerHTML = payload.history.slice(0,4).map(item => `
+      <article class="history-item">
+        <div>
+          <div class="history-item-title">${escHtml(item.role)} • ${escHtml(item.difficulty)}</div>
+          <div class="history-item-meta">${escHtml(item.interview_type)} • ${escHtml(item.language)} • ${escHtml(item.created_at)}</div>
+        </div>
+        <div class="history-score-pill">${escHtml(item.overall_score)}/10</div>
+      </article>
+    `).join('');
+  } catch (error) {
+    document.getElementById('history-list').innerHTML = '<div class="interview-empty-state">Unable to load saved history right now.</div>';
+  }
+}
+
+function getSelectedQuestionTypes() {
+  return Array.from(document.querySelectorAll('.mock-type-checkbox'))
+    .filter(checkbox => checkbox.checked)
+    .map(checkbox => checkbox.value);
+}
+
+function startTimer() {
+  clearInterval(currentMockData.timerId);
+  let remaining = (currentSessionConfig.timePerQuestion || 3) * 60;
+  document.getElementById('mock-timer').textContent = `${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
+  currentMockData.timerId = setInterval(()=>{
+    remaining -= 1;
+    const minutes = String(Math.floor(remaining/60)).padStart(2,'0');
+    const seconds = String(remaining%60).padStart(2,'0');
+    document.getElementById('mock-timer').textContent = `${minutes}:${seconds}`;
+    if (remaining <= 0) {
+      clearInterval(currentMockData.timerId);
+      showToast('Time ran out. Moving to the next question.', 'info');
+      submitAnswer();
+    }
+  }, 1000);
+}
+
+function updateSessionUI() {
+  const index = currentMockData.currentIndex;
+  const total = currentMockData.questions.length;
+  document.getElementById('mock-session-meta').textContent = `Question ${index + 1} of ${total}`;
+  document.getElementById('mock-progress-text').textContent = `Question ${index + 1} of ${total}`;
+  document.getElementById('mock-progress-fill').style.width = `${((index + 1) / total) * 100 || 0}%`;
+  if (total > 0) {
+    const currentQuestion = currentMockData.questions[index];
+    document.getElementById('current-question-text').textContent = currentQuestion.question;
+    document.getElementById('mock-answer-input').value = '';
+    document.getElementById('hint-box').textContent = 'Hint will appear here.';
+    document.getElementById('submit-answer-btn').disabled = false;
+    document.getElementById('current-question-tags').innerHTML = `
+      <span class="question-tag" style="background:#e0f2fe;color:#0369a1;padding:4px 10px;border-radius:999px;font-size:0.85rem;">Category: ${escHtml(currentQuestion.type)}</span>
+      <span class="question-tag" style="background:#e7f5e1;color:#166534;padding:4px 10px;border-radius:999px;font-size:0.85rem;">Difficulty: ${escHtml(currentQuestion.difficulty)}</span>
+    `;
+  }
+}
+
+async function startMockInterview() {
+  const role = document.getElementById('mock-role').value;
+  const difficulty = document.getElementById('mock-difficulty').value;
+  const interviewType = document.getElementById('mock-type').value;
+  const language = document.getElementById('mock-language').value;
+  const count = Number(document.getElementById('mock-count').value);
+  const timePerQuestion = Number(document.getElementById('mock-time').value);
+  const types = getSelectedQuestionTypes();
+
+  document.getElementById('mock-session-card').style.display = 'block';
+  document.getElementById('results-card').style.display = 'none';
+  document.getElementById('mock-answer-input').value = '';
+  document.getElementById('hint-box').textContent = 'Hint will appear here.';
+
+  currentSessionConfig = { role, difficulty, interviewType, language, count, timePerQuestion, types };
+  const res = await fetch('/api/interview/generate-questions', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ role, difficulty, types, language, count })
+  });
+  const payload = await res.json();
+  currentMockData = { questions: payload.questions || [], answers: [], currentIndex: 0, timerId: null, timePerQuestion };
+  if (!currentMockData.questions.length) {
+    showToast('No questions available for this setup. Try another combination.', 'error');
+    return;
+  }
+  localStorage.setItem('interview-last-config', JSON.stringify(currentSessionConfig));
+  updateSessionUI();
+  startTimer();
+}
+
+async function submitAnswer() {
+  const currentQuestion = currentMockData.questions[currentMockData.currentIndex];
+  const answer = document.getElementById('mock-answer-input').value.trim();
+  if (!answer) {
+    showToast('Please provide an answer before moving on.', 'error');
+    return;
+  }
+
+  clearInterval(currentMockData.timerId);
+  const res = await fetch('/api/interview/evaluate-answer', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      question: currentQuestion.question,
+      userAnswer: answer,
+      expectedKeyPoints: currentQuestion.expectedKeyPoints,
+      language: currentSessionConfig.language
+    })
+  });
+  const result = await res.json();
+
+  currentMockData.answers.push({
+    question: currentQuestion.question,
+    topic: currentQuestion.topic,
+    score: result.score,
+    feedback: result.feedback,
+    idealAnswer: result.idealAnswer,
+    userAnswer: answer,
+    whatWasGood: result.whatWasGood,
+    whatWasMissing: result.whatWasMissing,
+    role: currentQuestion.role,
+    difficulty: currentQuestion.difficulty,
+    analysis: result.analysis || {}
+  });
+
+  currentMockData.currentIndex += 1;
+  if (currentMockData.currentIndex >= currentMockData.questions.length) {
+    finishMockInterview();
+    return;
+  }
+
+  updateSessionUI();
+  startTimer();
+}
+
+function getHint() {
+  const currentQuestion = currentMockData.questions[currentMockData.currentIndex];
+  if (!currentQuestion) return;
+  document.getElementById('hint-box').textContent = `Hint: ${currentQuestion.expectedKeyPoints.slice(0,2).join(' • ')}`;
+}
+
+function skipQuestion() {
+  currentMockData.answers.push({
+    question: currentMockData.questions[currentMockData.currentIndex].question,
+    topic: currentMockData.questions[currentMockData.currentIndex].topic,
+    score: 0,
+    feedback: 'Skipped question. Try answering next time for more practice.',
+    idealAnswer: currentMockData.questions[currentMockData.currentIndex].modelAnswer,
+    userAnswer: '',
+    whatWasGood: [],
+    whatWasMissing: ['You skipped this question. Try answering to build confidence.']
+  });
+  currentMockData.currentIndex += 1;
+  if (currentMockData.currentIndex >= currentMockData.questions.length) {
+    finishMockInterview();
+    return;
+  }
+  updateSessionUI();
+  startTimer();
+}
+
+function renderAnalysis() {
+  const total = currentMockData.answers.length;
+  const avgScoreValue = total ? currentMockData.answers.reduce((sum, item)=>sum+Number(item.score),0)/total : 0;
+  const avgScore = total ? avgScoreValue.toFixed(1) : '0.0';
+  const overallPercent = Math.round((Number(avgScore) / 10) * 100);
+
+  const communication = Number((currentMockData.answers.reduce((sum, item)=>sum + Number(item.analysis?.communication_score || item.score),0)/ (total || 1)).toFixed(1));
+  const technical = Number((currentMockData.answers.reduce((sum, item)=>sum + Number(item.analysis?.technical_depth_score || item.score),0)/ (total || 1)).toFixed(1));
+  const problemSolving = Number((currentMockData.answers.reduce((sum, item)=>sum + Number(item.analysis?.problem_solving_score || item.score),0)/ (total || 1)).toFixed(1));
+  const confidence = Number((currentMockData.answers.reduce((sum, item)=>sum + Number(item.analysis?.confidence_score || item.score),0)/ (total || 1)).toFixed(1));
+
+  const derivedLevel = currentMockData.answers.length ? currentMockData.answers[0].analysis?.level_label : 'Competent';
+  const derivedHireability = currentMockData.answers.length ? currentMockData.answers[0].analysis?.hireability : 'Borderline';
+  const derivedHireReason = currentMockData.answers.length ? currentMockData.answers[0].analysis?.hireability_reason : 'A fair answer, but the hiring decision depends on role fit and competing candidates.';
+
+  document.getElementById('overall-score-display').textContent = `${overallPercent}`;
+  document.getElementById('avg-score-display').textContent = `${avgScore}/10`;
+  document.getElementById('question-count-display').textContent = total;
+  document.getElementById('comm-score-display').textContent = `${communication}/10`;
+  document.getElementById('tech-score-display').textContent = `${technical}/10`;
+  document.getElementById('problem-score-display').textContent = `${problemSolving}/10`;
+  document.getElementById('confidence-score-display').textContent = `${confidence}/10`;
+  document.getElementById('level-label-display').textContent = `Level: ${derivedLevel}`;
+  document.getElementById('hireability-display').textContent = `Hireability: ${derivedHireability}`;
+
+  document.getElementById('strengths-box').innerHTML = `
+    <div class="analysis-summary-title">Strengths</div>
+    <ul class="analysis-summary-list">
+      ${currentMockData.answers.flatMap(item => item.analysis?.strengths || []).slice(0,3).map(item=>`<li>${escHtml(item)}</li>`).join('') || '<li>Keep answering more questions to build stronger strengths.</li>'}
+    </ul>
+  `;
+
+  document.getElementById('improvements-box').innerHTML = `
+    <div class="analysis-summary-title">Improvement areas</div>
+    <ul class="analysis-summary-list">
+      ${currentMockData.answers.flatMap(item => item.analysis?.improvements || []).slice(0,3).map(item=>`<li>${escHtml(item)}</li>`).join('') || '<li>Focus on clarity, structure, and adding concrete examples.</li>'}
+    </ul>
+    <div class="analysis-summary-note" style="margin-top:10px;color:#374151;font-size:0.95rem;">${escHtml(derivedHireReason)}</div>
+  `;
+
+  document.getElementById('breakdown-body').innerHTML = currentMockData.answers.map((item, index)=>`
+    <tr>
+      <td>${index + 1}</td>
+      <td>${escHtml(item.question)}</td>
+      <td>${escHtml(item.score.toFixed(1))}/10</td>
+      <td>${escHtml(item.analysis?.verdict || (item.score >= 8.5 ? 'Excellent' : item.score >= 7 ? 'Good' : item.score >= 5 ? 'Average' : 'Poor'))}</td>
+      <td>
+        <div><strong>Feedback:</strong> ${escHtml(item.feedback)}</div>
+        <div style="margin-top:6px;color:#475569;"><strong>Model answer:</strong> ${escHtml(item.idealAnswer)}</div>
+      </td>
+    </tr>
+  `).join('');
+
+  const safeTotal = total || 1;
+  const radarData = [
+    { subject: 'Communication', score: Math.min(10, communication) },
+    { subject: 'Technical', score: Math.min(10, technical) },
+    { subject: 'Problem Solving', score: Math.min(10, problemSolving) },
+    { subject: 'Confidence', score: Math.min(10, confidence) },
+    { subject: 'Depth', score: Math.min(10, (technical + problemSolving) / 2) }
+  ];
+
+  const ring = document.getElementById('score-ring');
+  ring.style.background = `conic-gradient(#ec4899 ${overallPercent}%, #ffe4ea 0)`;
+
+  const radarContainer = document.getElementById('radar-chart');
+  if (radarContainer && RechartsLib && RechartsLib.ResponsiveContainer) {
+    radarContainer.innerHTML = '';
+    const { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } = RechartsLib;
+    const chartElement = ReactLib.createElement(ResponsiveContainer, { width: '100%', height: 320 },
+      ReactLib.createElement(RadarChart, { cx: '50%', cy: '50%', outerRadius: '70%', data: radarData },
+        ReactLib.createElement(PolarGrid, null),
+        ReactLib.createElement(PolarAngleAxis, { dataKey: 'subject' }),
+        ReactLib.createElement(PolarRadiusAxis, { angle: 30, domain: [0, 10] }),
+        ReactLib.createElement(Radar, { name: 'Performance', dataKey: 'score', stroke: '#ec4899', fill: '#ec4899', fillOpacity: 0.6 }),
+        ReactLib.createElement(Tooltip, null)
+      )
+    );
+    ReactDOMLib.createRoot(radarContainer).render(chartElement);
+  }
+
+  document.getElementById('certificate-score').textContent = `${overallPercent}`;
+  document.getElementById('certificate-level').textContent = derivedLevel;
+  document.getElementById('certificate-role').textContent = currentSessionConfig.role || 'Candidate';
+  document.getElementById('certificate-date').textContent = new Date().toLocaleDateString();
+  document.getElementById('certificate-name').textContent = 'Candidate';
+}
+
+function finishMockInterview() {
+  document.getElementById('results-card').style.display = 'block';
+  document.getElementById('mock-session-card').style.display = 'none';
+  renderAnalysis();
+  practiceCount = Math.min(200, practiceCount + currentMockData.answers.length);
+  localStorage.setItem('interview-practice-count', practiceCount);
+  updatePracticeCount();
+}
+
+async function saveReport() {
+  try {
+    const payload = {
+      session: {
+        role: currentSessionConfig.role,
+        difficulty: currentSessionConfig.difficulty,
+        interview_type: currentSessionConfig.interviewType,
+        language: currentSessionConfig.language,
+        questions: currentMockData.questions,
+        results: currentMockData.answers,
+        strengths: Array.from(new Set(currentMockData.answers.filter(item => Number(item.score) >= 7).map(item => item.feedback))),
+        improvements: Array.from(new Set(currentMockData.answers.filter(item => Number(item.score) < 7).map(item => item.feedback))),
+        overall_level: document.getElementById('level-label-display').textContent.replace('Level: ', ''),
+        hireability: document.getElementById('hireability-display').textContent.replace('Hireability: ', '')
+      }
+    };
+
+    const res = await fetch('/api/interview/save-session', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      showToast('Interview report saved successfully.', 'success');
+      loadHistory();
+    } else {
+      showToast('Could not save the report right now.', 'error');
+    }
+  } catch (error) {
+    showToast('Could not save the report right now.', 'error');
+  }
+}
+
+async function downloadCertificate() {
+  const certificate = document.getElementById('certificate-card');
+  if (!certificate) {
+    showToast('Certificate generation is unavailable.', 'error');
+    return;
+  }
+  certificate.style.display = 'block';
+  try {
+    const canvas = await html2canvas(certificate, {scale: 2});
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = `Interview-Certificate-${currentSessionConfig.role || 'Candidate'}.png`;
+    link.click();
+  } catch (err) {
+    showToast('Unable to generate certificate at this time.', 'error');
+  } finally {
+    certificate.style.display = 'none';
+  }
+}
+
+function retrySameTest() {
+  const lastConfig = JSON.parse(localStorage.getItem('interview-last-config') || 'null');
+  if (!lastConfig) {
+    startMockInterview();
+    return;
+  }
+  document.getElementById('mock-role').value = lastConfig.role;
+  document.getElementById('mock-difficulty').value = lastConfig.difficulty;
+  document.getElementById('mock-type').value = lastConfig.interviewType;
+  document.getElementById('mock-language').value = lastConfig.language;
+  document.getElementById('mock-count').value = lastConfig.count;
+  if (lastConfig.timePerQuestion) {
+    document.getElementById('mock-time').value = lastConfig.timePerQuestion;
+  }
+  if (Array.isArray(lastConfig.types)) {
+    document.querySelectorAll('.mock-type-checkbox').forEach(checkbox => {
+      checkbox.checked = lastConfig.types.includes(checkbox.value);
+    });
+  }
+  startMockInterview();
+}
+
+function newInterview() {
+  document.getElementById('results-card').style.display = 'none';
+  document.getElementById('mock-session-card').style.display = 'none';
+  document.getElementById('mock-answer-input').value = '';
+  document.getElementById('hint-box').textContent = 'Hint will appear here.';
+  currentMockData = { questions: [], answers: [], currentIndex: 0, timerId: null, totalTime: 60 };
+  clearInterval(currentMockData.timerId);
+}
+
+function setupVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('voice-input-btn').disabled = true;
+    document.getElementById('voice-input-btn').textContent = '🎤 Voice input unavailable';
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = document.getElementById('mock-language').value || 'en-US';
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  document.getElementById('voice-input-btn').addEventListener('click', () => {
+    recognition.start();
+    document.getElementById('voice-input-btn').textContent = 'Listening...';
+  });
+
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results).map(result => result[0].transcript).join(' ');
+    document.getElementById('mock-answer-input').value = transcript;
+    document.getElementById('voice-input-btn').textContent = '🎤 Speak Answer';
+  };
+
+  recognition.onerror = () => {
+    document.getElementById('voice-input-btn').textContent = '🎤 Speak Answer';
+    showToast('Voice input failed. Type your answer instead.', 'error');
+  };
+}
+
+// event listeners
+try {
+  document.getElementById('start-mock-btn').addEventListener('click', startMockInterview);
+  document.getElementById('submit-answer-btn').addEventListener('click', submitAnswer);
+  document.getElementById('hint-btn').addEventListener('click', getHint);
+  document.getElementById('skip-btn').addEventListener('click', skipQuestion);
+  document.getElementById('retry-same-test-btn').addEventListener('click', retrySameTest);
+  document.getElementById('new-test-btn').addEventListener('click', newInterview);
+  document.getElementById('save-report-btn').addEventListener('click', saveReport);
+  document.getElementById('download-cert-btn').addEventListener('click', downloadCertificate);
+  document.getElementById('reset-mock-btn').addEventListener('click', () => {
+    document.getElementById('mock-role').value = 'SDE';
+    document.getElementById('mock-difficulty').value = 'Medium';
+    document.getElementById('mock-type').value = 'Mixed';
+    document.getElementById('mock-language').value = 'English';
+    document.getElementById('mock-count').value = '10';
+    newInterview();
+  });
+
+  ['bank-role','bank-topic','bank-difficulty','bank-search'].forEach(id => {
+    document.getElementById(id).addEventListener('change', loadQuestionBank);
+    document.getElementById(id).addEventListener('input', loadQuestionBank);
+  });
+
+  updatePracticeCount();
+  renderYouTubeHub();
+  loadQuestionBank();
+  loadHistory();
+  setupVoiceInput();
+} catch (err) {
+  console.error(err);
+}
+</script>
+{% endblock %}

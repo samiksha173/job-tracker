@@ -1,0 +1,485 @@
+{% extends "hr/base.html" %}
+{% block title %}Job Vacancies{% endblock %}
+{% block topbar_title %}Job Vacancies{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📢 Job Vacancies</h1>
+  <p>Post and manage open positions at your company</p>
+</div>
+
+<!-- Post New Vacancy Button -->
+<div style="margin-bottom:20px">
+  <button class="btn-primary" onclick="openVacancyModal()">➕ Post New Vacancy</button>
+</div>
+
+<!-- Vacancies List -->
+<div id="vacanciesList"><p class="loading">Loading…</p></div>
+
+<!-- ── Add / Edit Vacancy Modal ── -->
+<div id="vacancyModal" class="modal hidden">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <h3 id="vacModalTitle">Post New Vacancy</h3>
+      <button class="modal-close" onclick="closeVacancyModal()">✕</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px" id="vacFormBody">
+
+      <div style="grid-column:1/-1">
+        <label class="rv-label">Job Title *</label>
+        <input class="rv-input" id="v-title" placeholder="e.g. Frontend Developer"/>
+      </div>
+
+      <div>
+        <label class="rv-label">Company Name *</label>
+        <input class="rv-input" id="v-company" placeholder="e.g. Acme Corp"/>
+      </div>
+
+      <div>
+        <label class="rv-label">Location</label>
+        <input class="rv-input" id="v-location" placeholder="e.g. Mumbai / Remote"/>
+      </div>
+
+      <div>
+        <label class="rv-label">Job Type</label>
+        <select class="rv-input" id="v-jobtype">
+          <option>Full-time</option>
+          <option>Part-time</option>
+          <option>Internship</option>
+          <option>Contract</option>
+          <option>Remote</option>
+          <option>Hybrid</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="rv-label">Experience Required</label>
+        <input class="rv-input" id="v-experience" placeholder="e.g. 2-4 years"/>
+      </div>
+
+      <div>
+        <label class="rv-label">Salary / CTC</label>
+        <input class="rv-input" id="v-salary" placeholder="e.g. ₹8-12 LPA"/>
+      </div>
+
+      <div>
+        <label class="rv-label">Application Deadline</label>
+        <input class="rv-input" type="date" id="v-deadline"/>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label class="rv-label">Skills Required <span style="font-size:.75rem;color:#9ca3af">(comma separated)</span></label>
+        <input class="rv-input" id="v-skills" placeholder="e.g. React, Node.js, Python"/>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label class="rv-label">Job Description *</label>
+        <textarea class="rv-input" id="v-description" rows="4" placeholder="Describe the role, responsibilities, team…" style="resize:vertical"></textarea>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label class="rv-label">Requirements</label>
+        <textarea class="rv-input" id="v-requirements" rows="3" placeholder="List key requirements…" style="resize:vertical"></textarea>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label class="rv-label">Status</label>
+        <select class="rv-input" id="v-active">
+          <option value="true">Active — Accepting Applications</option>
+          <option value="false">Inactive — Hidden from Applicants</option>
+        </select>
+      </div>
+
+    </div>
+    <div style="padding:0 24px 24px;display:flex;gap:12px;justify-content:flex-end">
+      <button class="btn-secondary" onclick="closeVacancyModal()">Cancel</button>
+      <button class="btn-primary" id="vacSaveBtn" onclick="saveVacancy()">💾 Save Vacancy</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.vacancy-list{display:flex;flex-direction:column;gap:14px}
+.vacancy-frame{display:flex;flex-direction:column;gap:10px}
+.vac-card{background:#fff;border:1.5px solid #e5e7eb;border-radius:18px;padding:22px 24px;transition:.2s;cursor:pointer;position:relative;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.vac-card:hover{box-shadow:0 10px 28px rgba(16,185,129,.16);border-color:#a7f3d0;transform:translateY(-1px)}
+.vac-card.expanded{border-color:#10b981;box-shadow:0 16px 36px rgba(16,185,129,.16)}
+.vac-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.vac-title{font-size:1.05rem;font-weight:800;color:#111;margin-bottom:4px}
+.vac-company{font-size:.85rem;color:#6b7280;margin-bottom:10px}
+.vac-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.vac-chip{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:600}
+.vac-chip.loc{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.vac-chip.sal{background:#fefce8;border-color:#fde68a;color:#92400e}
+.vac-chip.exp{background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed}
+.vac-chip.dead{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+.vac-skills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vac-skill-tag{background:#f3f4f6;color:#374151;border-radius:6px;padding:2px 10px;font-size:.73rem;font-weight:600}
+.vac-desc{font-size:.83rem;color:#4b5563;margin-top:10px;line-height:1.6;border-top:1px solid #f3f4f6;padding-top:10px}
+.vac-actions{display:flex;gap:8px;flex-shrink:0}
+.vac-card-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.inactive-badge{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:700}
+.active-badge{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:700}
+.vac-detail-panel{background:linear-gradient(180deg,#fff,#fcfdfd);border:1px solid #dfe8ea;border-radius:18px;padding:20px 20px 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.vac-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:14px}
+.vac-detail-title-row h4{margin:0;font-size:1rem;font-weight:800;color:#111}
+.vac-detail-eyebrow{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#059669;margin-bottom:4px}
+.vac-detail-subline{font-size:.78rem;color:#6b7280;margin-top:4px}
+.vac-detail-actions{display:flex;gap:8px;flex-wrap:wrap}
+.vac-detail-summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0 16px}
+.vac-stat-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:6px}
+.vac-stat-label{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}
+.vac-stat-value{font-size:1.35rem;font-weight:800;color:#111}
+.vac-detail-block{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;border-bottom:1px solid #f1f5f9;padding-bottom:14px}
+.vac-detail-block:last-child{border-bottom:0;padding-bottom:0;margin-bottom:0}
+.vac-detail-block h5{margin:0;font-size:.88rem;font-weight:800;color:#111}
+.vac-detail-copy{font-size:.84rem;line-height:1.65;color:#4b5563}
+.vac-detail-copy p{margin:0 0 10px}
+.vac-detail-copy p:last-child{margin-bottom:0}
+.vac-detail-copy ul,.vac-detail-copy ol{margin:8px 0 10px 18px;padding-left:0}
+.vac-detail-copy li{margin-bottom:6px}
+.vac-tags-grid{display:flex;flex-wrap:wrap;gap:8px}
+.vac-detail-statusbar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px 12px;margin-top:6px}
+.vac-detail-status-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vac-status-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:.7rem;font-weight:800}
+.vac-status-pill.active{background:#dcfce7;color:#166534;border:1px solid #86efac}
+.vac-status-pill.closed{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.vac-deadline-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:.72rem;font-weight:800;background:#fff;border:1px solid #e5e7eb;color:#374151}
+.vac-deadline-chip.expired{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+.vac-deadline-chip.imminent{background:#fef3c7;border-color:#fde68a;color:#b45309}
+.vac-detail-applicants table{width:100%;border-collapse:collapse;font-size:.82rem}
+.vac-detail-applicants th,.vac-detail-applicants td{padding:10px 8px;text-align:left;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.vac-detail-applicants th{font-size:.68rem;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;background:#fafafa}
+.vac-detail-applicants td:last-child,.vac-detail-applicants th:last-child{text-align:right}
+.vac-status-pill.status-pending{background:#f3f4f6;color:#4b5563;border:1px solid #d1d5db}
+.vac-status-pill.status-interview{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+.vac-status-pill.status-hired{background:#dcfce7;color:#166534;border:1px solid #86efac}
+.vac-status-pill.status-rejected{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.vac-empty-state{padding:14px;border-radius:12px;background:#f9fafb;color:#6b7280;font-size:.82rem;border:1px dashed #d1d5db}
+.vac-review-link{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#1d4ed8;color:#fff;padding:6px 10px;font-size:.68rem;font-weight:800;text-decoration:none}
+.vac-detail-title-row{display:flex;flex-direction:column;gap:4px}
+.rv-label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:6px}
+.rv-input{width:100%;padding:10px 12px;border:2px solid #e5e7eb;border-radius:10px;font-size:.9rem;background:#fafafa;color:#111;transition:.2s;outline:none;font-family:inherit}
+.rv-input:focus{border-color:#10b981;background:#fff;box-shadow:0 0 0 3px rgba(16,185,129,.1)}
+.rv-form-group{margin-bottom:0}
+</style>
+
+<script>
+let editingId = null;
+let expandedVacancyId = null;
+const vacancyDetailsCache = {};
+
+function escapeHtml(text) {
+  return String(text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderMarkdownLite(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return '<p class="vac-detail-copy">No description provided.</p>';
+
+  let escaped = escapeHtml(raw)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  const paragraphs = escaped.split(/\n\s*\n+/).map(block => block.trim()).filter(Boolean);
+  return paragraphs.map(block => {
+    if (block.startsWith('- ')) {
+      const items = block.split('\n').map(item => item.trim()).filter(item => item.startsWith('- ')).map(item => `<li>${item.replace(/^-\s+/, '')}</li>`).join('');
+      return `<ul>${items}</ul>`;
+    }
+    if (/^\d+\.\s+/.test(block)) {
+      const items = block.split('\n').map(item => item.trim()).filter(item => /^\d+\.\s+/.test(item)).map(item => `<li>${item.replace(/^\d+\.\s+/, '')}</li>`).join('');
+      return `<ol>${items}</ol>`;
+    }
+    return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+}
+
+function plainTextPreview(text, maxLen = 200) {
+  const cleaned = String(text || '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\*\*|\*/g, '')
+    .replace(/\n+/g, ' ')
+    .trim();
+  return cleaned.length > maxLen ? `${cleaned.substring(0, maxLen)}…` : cleaned;
+}
+
+function statusTone(status) {
+  const normalized = String(status || 'Pending').toLowerCase();
+  if (normalized === 'interview') return 'status-interview';
+  if (normalized === 'hired') return 'status-hired';
+  if (normalized === 'rejected') return 'status-rejected';
+  return 'status-pending';
+}
+
+function formatCountdown(deadline) {
+  if (!deadline) return 'No deadline set';
+  const due = new Date(`${deadline}T23:59:59`);
+  const diff = due.getTime() - Date.now();
+  if (Number.isNaN(due.getTime())) return 'No deadline set';
+  if (diff < 0) return 'Expired';
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return `${days} day${days === 1 ? '' : 's'} left`;
+}
+
+async function loadVacancies() {
+  const vacs = await fetch('/hr/api/vacancies').then(r => r.json());
+  const el = document.getElementById('vacanciesList');
+  if (!vacs.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px;color:#9ca3af">
+      <div style="font-size:3rem;margin-bottom:12px">📭</div>
+      <div style="font-size:1rem;font-weight:600;color:#6b7280">No vacancies posted yet</div>
+      <div style="font-size:.85rem;margin-top:4px">Click "Post New Vacancy" to get started</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="vacancy-list">${vacs.map(v => `
+    <div class="vacancy-frame" id="vacancy-frame-${v.id}">
+      <article class="vac-card ${expandedVacancyId === v.id ? 'expanded' : ''}" id="vac-${v.id}" onclick="toggleVacancyDetails(${v.id})" tabindex="0" role="button" aria-expanded="${expandedVacancyId === v.id}">
+        <div class="vac-card-top">
+          <div style="flex:1">
+            <div class="vac-title">${esc(v.title)}</div>
+            <div class="vac-company">🏢 ${esc(v.company)}</div>
+            <div class="vac-meta">
+              ${v.location    ? `<span class="vac-chip loc">📍 ${esc(v.location)}</span>` : ''}
+              ${v.job_type    ? `<span class="vac-chip">${esc(v.job_type)}</span>` : ''}
+              ${v.experience  ? `<span class="vac-chip exp">🎓 ${esc(v.experience)}</span>` : ''}
+              ${v.salary      ? `<span class="vac-chip sal">💰 ${esc(v.salary)}</span>` : ''}
+              ${v.deadline    ? `<span class="vac-chip dead">⏰ Deadline: ${esc(v.deadline)}</span>` : ''}
+            </div>
+            ${v.skills ? `<div class="vac-skills">${v.skills.split(',').map(s=>`<span class="vac-skill-tag">${esc(s.trim())}</span>`).join('')}</div>` : ''}
+            ${v.description ? `<div class="vac-desc">${plainTextPreview(v.description)}</div>` : ''}
+          </div>
+          <div class="vac-card-header-right">
+            <span class="${v.is_active ? 'active-badge' : 'inactive-badge'}">${v.is_active ? '✅ Active' : '⏸ Closed'}</span>
+            <div class="vac-actions" onclick="event.stopPropagation();">
+              <button class="btn-sm btn-primary" onclick='event.stopPropagation(); editVacancy(${JSON.stringify(v)})'>✏️ Edit</button>
+              <button class="btn-sm btn-secondary" onclick="event.stopPropagation(); deleteVacancy(${v.id})">🗑️ Delete</button>
+            </div>
+          </div>
+        </div>
+      </article>
+      <div class="vac-detail-panel" id="vac-detail-${v.id}" style="display:${expandedVacancyId === v.id ? 'block' : 'none'}"></div>
+    </div>
+  `).join('')}</div>`;
+
+  if (expandedVacancyId) {
+    await loadVacancyDetail(expandedVacancyId);
+  }
+}
+
+async function loadVacancyDetail(vacancyId) {
+  try {
+    const detail = vacancyDetailsCache[vacancyId] || await fetch(`/hr/api/vacancies/${vacancyId}/detail`).then(r => r.json());
+    vacancyDetailsCache[vacancyId] = detail;
+    const panel = document.getElementById(`vac-detail-${vacancyId}`);
+    if (!panel) return;
+
+    const v = detail.vacancy;
+    const applicants = detail.applicants || [];
+    const summary = detail.summary || { total_applied: applicants.length, pending: 0, interview: 0, hired: 0, rejected: 0 };
+    const deadlineText = formatCountdown(v.deadline);
+    const statusClass = v.is_active ? 'active' : 'closed';
+    const statusAction = v.is_active ? 'Close Vacancy' : 'Reopen Vacancy';
+    const deadlineClass = deadlineText === 'Expired' ? 'expired' : (deadlineText.includes('1 day') || deadlineText.includes('2 days') || deadlineText.includes('3 days') ? 'imminent' : '');
+
+    const tags = [
+      v.location ? `<span class="vac-chip loc">📍 ${esc(v.location)}</span>` : '',
+      v.job_type ? `<span class="vac-chip">${esc(v.job_type)}</span>` : '',
+      v.salary ? `<span class="vac-chip sal">💰 ${esc(v.salary)}</span>` : '',
+      v.experience ? `<span class="vac-chip exp">🎓 ${esc(v.experience)}</span>` : '',
+    ].filter(Boolean).join('');
+
+    const skills = v.skills ? v.skills.split(',').map(item => `<span class="vac-skill-tag">${esc(item.trim())}</span>`).filter(Boolean).join('') : '<span class="vac-skill-tag">No skills listed</span>';
+
+    const applicantRows = applicants.length ? applicants.map(app => `
+      <tr>
+        <td>${esc(app.name)}</td>
+        <td>${esc(app.email)}</td>
+        <td>${esc(app.applied_date)}</td>
+        <td><span class="vac-status-pill ${statusTone(app.hr_status)}">${esc(app.hr_status || 'Pending')}</span></td>
+        <td><a class="vac-review-link" href="/hr/applications" target="_blank" rel="noopener">Review</a></td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" class="vac-empty-state">No applicants have applied to this vacancy yet.</td></tr>';
+
+    panel.innerHTML = `
+      <div class="vac-detail-header">
+        <div class="vac-detail-title-row">
+          <div class="vac-detail-eyebrow">Vacancy Details</div>
+          <h4>${esc(v.title)} • ${esc(v.company)}</h4>
+          <div class="vac-detail-subline">Posted ${esc(v.created_at || 'recently')} • ${deadlineText}</div>
+        </div>
+        <div class="vac-detail-actions">
+          <button class="btn-sm btn-primary" onclick="event.stopPropagation(); editVacancy(${JSON.stringify(v)})">✏️ Edit</button>
+          <button class="btn-sm btn-secondary" onclick="event.stopPropagation(); deleteVacancy(${v.id})">🗑️ Delete</button>
+        </div>
+      </div>
+
+      <div class="vac-detail-block">
+        <div class="vac-detail-statusbar">
+          <div class="vac-detail-status-left">
+            <span class="vac-status-pill ${statusClass}">${v.is_active ? '✅ Active' : '⏸ Closed'}</span>
+            <span class="vac-deadline-chip ${deadlineClass}">⏰ ${deadlineText}</span>
+          </div>
+          <button class="btn-sm ${v.is_active ? 'btn-secondary' : 'btn-primary'}" onclick="event.stopPropagation(); toggleVacancyStatus(${v.id}, ${v.is_active})">${statusAction}</button>
+        </div>
+      </div>
+
+      <div class="vac-detail-block">
+        <h5>Job Description</h5>
+        <div class="vac-detail-copy vac-detail-markdown">${renderMarkdownLite(v.description)}</div>
+      </div>
+
+      <div class="vac-detail-block">
+        <h5>Job Tags</h5>
+        <div class="vac-tags-grid">
+          ${tags}
+          ${v.location ? '' : ''}
+        </div>
+        <div class="vac-tags-grid" style="margin-top:8px">
+          ${v.skills ? v.skills.split(',').map(skill => `<span class="vac-skill-tag">${esc(skill.trim())}</span>`).join('') : '<span class="vac-skill-tag">No skills listed</span>'}
+        </div>
+      </div>
+
+      <div class="vac-detail-block">
+        <h5>Applicant Summary</h5>
+        <div class="vac-detail-summary-row">
+          <div class="vac-stat-card"><span class="vac-stat-label">Total Applied</span><div class="vac-stat-value">${summary.total_applied}</div></div>
+          <div class="vac-stat-card"><span class="vac-stat-label">Pending</span><div class="vac-stat-value">${summary.pending}</div></div>
+          <div class="vac-stat-card"><span class="vac-stat-label">Interview</span><div class="vac-stat-value">${summary.interview}</div></div>
+          <div class="vac-stat-card"><span class="vac-stat-label">Hired</span><div class="vac-stat-value">${summary.hired}</div></div>
+          <div class="vac-stat-card"><span class="vac-stat-label">Rejected</span><div class="vac-stat-value">${summary.rejected}</div></div>
+        </div>
+      </div>
+
+      <div class="vac-detail-block vac-detail-applicants">
+        <h5>Applicants</h5>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Applied Date</th>
+              <th>HR Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>${applicantRows}</tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    console.error(err);
+    const panel = document.getElementById(`vac-detail-${vacancyId}`);
+    if (panel) panel.innerHTML = '<div class="vac-empty-state">Failed to load vacancy details.</div>';
+  }
+}
+
+async function toggleVacancyDetails(id) {
+  if (expandedVacancyId === id) {
+    expandedVacancyId = null;
+  } else {
+    expandedVacancyId = id;
+  }
+  await loadVacancies();
+}
+
+async function toggleVacancyStatus(id, currentStatus) {
+  const nextStatus = !currentStatus;
+  const res = await fetch(`/hr/api/vacancies/${id}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ is_active: nextStatus })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast(nextStatus ? 'Vacancy reopened and is now active.' : 'Vacancy closed successfully.', 'success');
+    vacancyDetailsCache[id] = null;
+    await loadVacancies();
+  } else {
+    showToast('Unable to update vacancy status.', 'error');
+  }
+}
+
+function openVacancyModal(v = null) {
+  editingId = v ? v.id : null;
+  document.getElementById('vacModalTitle').textContent = v ? 'Edit Vacancy' : 'Post New Vacancy';
+  document.getElementById('v-title').value       = v ? v.title        : '';
+  document.getElementById('v-company').value     = v ? v.company      : '';
+  document.getElementById('v-location').value    = v ? v.location     : '';
+  document.getElementById('v-jobtype').value     = v ? v.job_type     : 'Full-time';
+  document.getElementById('v-experience').value  = v ? v.experience   : '';
+  document.getElementById('v-salary').value      = v ? v.salary       : '';
+  document.getElementById('v-deadline').value    = v ? v.deadline     : '';
+  document.getElementById('v-skills').value      = v ? v.skills       : '';
+  document.getElementById('v-description').value = v ? v.description  : '';
+  document.getElementById('v-requirements').value= v ? v.requirements : '';
+  document.getElementById('v-active').value      = v ? String(v.is_active) : 'true';
+  document.getElementById('vacancyModal').classList.remove('hidden');
+}
+
+function editVacancy(v) { openVacancyModal(v); }
+function closeVacancyModal() { document.getElementById('vacancyModal').classList.add('hidden'); editingId = null; }
+
+async function saveVacancy() {
+  const title   = document.getElementById('v-title').value.trim();
+  const company = document.getElementById('v-company').value.trim();
+  const desc    = document.getElementById('v-description').value.trim();
+  if (!title || !company || !desc) {
+    showToast('Title, Company and Description are required.', 'error'); return;
+  }
+  const payload = {
+    title,
+    company,
+    location:     document.getElementById('v-location').value.trim(),
+    job_type:     document.getElementById('v-jobtype').value,
+    experience:   document.getElementById('v-experience').value.trim(),
+    salary:       document.getElementById('v-salary').value.trim(),
+    deadline:     document.getElementById('v-deadline').value,
+    skills:       document.getElementById('v-skills').value.trim(),
+    description:  desc,
+    requirements: document.getElementById('v-requirements').value.trim(),
+    is_active:    document.getElementById('v-active').value === 'true'
+  };
+  const url    = editingId ? `/hr/api/vacancies/${editingId}` : '/hr/api/vacancies';
+  const method = editingId ? 'PUT' : 'POST';
+  const res    = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const data   = await res.json();
+  if (data.success) {
+    showToast(editingId ? 'Vacancy updated!' : 'Vacancy posted!', 'success');
+    closeVacancyModal();
+    loadVacancies();
+  } else {
+    showToast('Error saving vacancy.', 'error');
+  }
+}
+
+async function deleteVacancy(id) {
+  if (!confirm('Delete this vacancy? This cannot be undone.')) return;
+  const res = await fetch(`/hr/api/vacancies/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    if (expandedVacancyId === id) expandedVacancyId = null;
+    delete vacancyDetailsCache[id];
+    showToast('Vacancy deleted.', 'success');
+    loadVacancies();
+  } else {
+    showToast('Error deleting.', 'error');
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Pre-fill company from HR profile
+fetch('/api/me').then(r=>r.json()).then(u=>{
+  // Company will be pre-filled from server side when HR registered
+}).catch(()=>{});
+
+loadVacancies();
+</script>
+{% endblock %}

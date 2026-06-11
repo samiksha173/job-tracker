@@ -159,24 +159,60 @@ function hideAddForm() { document.getElementById('addForm').classList.add('hidde
 
 document.getElementById('eventForm').addEventListener('submit', async e => {
   e.preventDefault();
+
+  const form = e.currentTarget;
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    showToast('Please complete the required fields ✨','error');
+    return;
+  }
+
   const body = {
-    title: document.getElementById('evTitle').value,
+    title: document.getElementById('evTitle').value.trim(),
     event_date: document.getElementById('evDate').value,
     event_type: document.getElementById('evType').value,
     event_time: document.getElementById('evTime').value,
-    note: document.getElementById('evNote').value
+    note: document.getElementById('evNote').value.trim()
   };
-  try{
-    const res = await fetch('/api/events', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    if (res.ok) {
-      await fetch('/api/reminders', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ title: body.title, remind_date: body.event_date, remind_time: body.event_time, reminder_type: body.event_type, note: body.note }) });
-      showToast('Event saved! 🌸','success');
-      document.getElementById('eventForm').reset();
-      hideAddForm();
-      loadEvents();
+
+  try {
+    const res = await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to save event');
     }
-  }catch(er){ showToast('Error saving event','error'); }
+
+    try {
+      await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: body.title,
+          remind_date: body.event_date,
+          remind_time: body.event_time,
+          reminder_type: body.event_type,
+          note: body.note
+        })
+      });
+    } catch (reminderErr) {
+      showToast('Event saved, reminder sync skipped ✨','info');
+    }
+
+    showToast('Event Added Successfully','success');
+    form.reset();
+    hideAddForm();
+    selDate = body.event_date;
+    await loadEvents();
+    selectDate(body.event_date);
+  } catch (err) {
+    showToast('Failed to save event. Please try again.','error');
+  }
 });
 
 async function deleteEvent(id) {

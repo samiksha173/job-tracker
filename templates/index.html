@@ -1,12 +1,15 @@
 {% extends "base.html" %}
 {% set active = 'dashboard' %}
+{% set dash_user_name = session.get('user_name', 'User') %}
+{% set dash_name_parts = dash_user_name.split() %}
+{% set dash_initials = ((dash_name_parts[0][0] if dash_name_parts else 'U') ~ (dash_name_parts[1][0] if dash_name_parts|length > 1 else ''))|upper %}
 {% block title %}Dashboard — HireBloom{% endblock %}
 
 {% block content %}
 
 <!-- Page Header -->
 <div class="page-header">
-  <div class="greeting-chip">🌸 Good morning!</div>
+  <div class="greeting-chip">🌸 Good morning, {{ dash_user_name.split()[0] if dash_user_name.split() else 'User' }}!</div>
   <h1>Applicant Dashboard</h1>
   <p>Track applications, interviews, and every next step — all in one beautiful place.</p>
 </div>
@@ -45,6 +48,15 @@
   </button>
 </div>
 
+<!-- HR Vacancies -->
+<div class="section-card">
+  <div class="section-header">
+    <h2>Open Vacancies From HR</h2>
+    <span class="link-all" id="dash-vac-count">Loading...</span>
+  </div>
+  <div id="dash-vacancies"><p class="loading">Loading vacancies...</p></div>
+</div>
+
 <!-- Two Column Layout -->
 <div class="two-col">
 
@@ -55,12 +67,12 @@
     <div class="profile-card section-card" style="display:flex;align-items:center;gap:16px;padding:22px">
       <div class="profile-avatar-wrap" style="position:relative;flex-shrink:0">
         <div class="profile-avatar" id="dash-avatar-display" style="width:60px;height:60px;background:linear-gradient(135deg,var(--pk300),var(--pk600));border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;font-weight:700;border:3px solid var(--pk200);font-family:'Playfair Display',serif;overflow:hidden">
-          <span id="dash-avatar-initials">AN</span>
+          <span id="dash-avatar-initials">{{ dash_initials }}</span>
         </div>
         <div style="position:absolute;bottom:2px;right:2px;width:12px;height:12px;background:#10b981;border-radius:50%;border:2px solid #fff"></div>
       </div>
       <div style="flex:1">
-        <div style="font-size:1rem;font-weight:700;color:var(--text);font-family:'Playfair Display',serif" id="dash-profile-name">Anjali Nair</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--text);font-family:'Playfair Display',serif" id="dash-profile-name">{{ dash_user_name }}</div>
         <div style="font-size:.8rem;color:var(--text2);margin-top:2px" id="dash-profile-role">UI/UX Designer & Frontend Developer</div>
         <div id="dash-tags-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
           <span class="tag">React</span><span class="tag">Figma</span><span class="tag-gray">Open to work</span>
@@ -94,6 +106,70 @@
       </div>
       <div id="recent-apps"><p class="loading">Loading applications…</p></div>
       <div id="dash-app-empty" class="hidden" style="text-align:center;padding:24px;color:var(--text3);font-size:.88rem">No applications match your filters.</div>
+    </div>
+
+    <!-- AI Interview Prep Coach -->
+    <div class="section-card interview-coach-section">
+      <div class="section-header" style="margin-bottom:8px">
+        <h2>AI Interview Prep Coach</h2>
+        <span class="interview-coach-badge">Mock practice</span>
+      </div>
+      <div class="interview-coach-copy">
+        <p>Practice role-specific questions, get instant feedback, and sharpen your answers before every interview.</p>
+      </div>
+      <div class="interview-coach-highlights">
+        <span class="interview-chip">🧠 HR + Tech Q&A</span>
+        <span class="interview-chip">✨ Instant feedback</span>
+        <span class="interview-chip">🎯 Role-based practice</span>
+      </div>
+      <button class="interview-coach-cta" type="button" onclick="openInterviewPrepModal()">Start Mock Interview</button>
+    </div>
+
+    <!-- AI Resume Builder -->
+    <div class="section-card resume-builder-section">
+      <div class="section-header" style="margin-bottom:12px">
+        <h2>AI Resume Builder</h2>
+        <span class="resume-badge">Powered by AI</span>
+      </div>
+
+      <div class="resume-hero-card">
+        <div class="resume-hero-icon">✨</div>
+        <div class="resume-hero-copy">
+          <h3>Build Your AI-Powered Resume</h3>
+          <p>Let AI craft a tailored resume based on your profile, skills, and target job role in seconds.</p>
+        </div>
+        <button class="resume-cta" onclick="openResumeBuilderModal()">Build Resume →</button>
+      </div>
+
+      <div class="resume-feature-grid">
+        <div class="resume-feature-card">
+          <div class="resume-feature-icon">📄</div>
+          <div class="resume-feature-title">ATS Optimized</div>
+          <div class="resume-feature-text">Formatted to pass applicant tracking systems</div>
+        </div>
+        <div class="resume-feature-card">
+          <div class="resume-feature-icon">🎯</div>
+          <div class="resume-feature-title">Job Matched</div>
+          <div class="resume-feature-text">Tailored to the specific job description you're targeting</div>
+        </div>
+        <div class="resume-feature-card">
+          <div class="resume-feature-icon">⚡</div>
+          <div class="resume-feature-title">Instant Draft</div>
+          <div class="resume-feature-text">Get a complete resume draft in under 30 seconds</div>
+        </div>
+      </div>
+
+      <div class="resume-tips-card">
+        <div class="resume-tips-header">
+          <span class="resume-tips-icon">💡</span>
+          <span class="resume-tips-title">Resume Tips</span>
+        </div>
+        <ul class="resume-tips-list">
+          <li>Use keywords from the job description</li>
+          <li>Keep your resume to 1 page if under 3 years experience</li>
+          <li>Quantify achievements with numbers wherever possible</li>
+        </ul>
+      </div>
     </div>
 
     <!-- HR Notifications -->
@@ -265,6 +341,363 @@
   </div>
 </div>
 
+<!-- ── Resume Builder Modal ── -->
+<div class="modal hidden" id="resume-builder-modal">
+  <div class="modal-box resume-builder-modal-box">
+    <div class="resume-modal-header">
+      <div>
+        <div class="resume-modal-kicker">AI Resume Builder</div>
+        <h3>Build a polished resume in minutes</h3>
+      </div>
+      <button class="modal-close" onclick="closeModal('resume-builder-modal')">✕</button>
+    </div>
+
+    <div class="resume-step-progress">
+      <div class="resume-step-indicator">
+        <span>Step <span id="resume-step-current">1</span> of <span id="resume-step-total">4</span></span>
+        <span id="resume-step-label">Profile basics</span>
+      </div>
+      <div class="resume-step-track">
+        <div class="resume-step-fill" id="resume-progress-fill" style="width:25%"></div>
+      </div>
+    </div>
+
+    <div class="resume-step-panel" id="resume-step-1">
+      <div class="resume-panel-title">Profile basics</div>
+      <div class="resume-panel-copy">Start with your current profile so the draft feels authentic and tailored.</div>
+      <div class="resume-form-grid">
+        <label class="resume-field">Full name
+          <input class="form-input" type="text" id="resume-name" placeholder="Avery Johnson"/>
+        </label>
+        <label class="resume-field">Job title
+          <input class="form-input" type="text" id="resume-role" placeholder="Product Designer"/>
+        </label>
+        <label class="resume-field">Email
+          <input class="form-input" type="email" id="resume-email" placeholder="avery@example.com"/>
+        </label>
+        <label class="resume-field">Phone
+          <input class="form-input" type="tel" id="resume-phone" placeholder="+91 98765 43210"/>
+        </label>
+        <label class="resume-field resume-full-span">Location
+          <input class="form-input" type="text" id="resume-location" placeholder="Mumbai, India"/>
+        </label>
+      </div>
+    </div>
+
+    <div class="resume-step-panel" id="resume-step-2" hidden>
+      <div class="resume-panel-title">Target role & summary</div>
+      <div class="resume-panel-copy">Define the role you're targeting and highlight your strongest value proposition.</div>
+      <div class="resume-form-grid">
+        <label class="resume-field">Target role
+          <input class="form-input" type="text" id="resume-target-role" placeholder="Senior UX Designer"/>
+        </label>
+        <label class="resume-field">Years of experience
+          <input class="form-input" type="text" id="resume-experience-level" placeholder="5+ years"/>
+        </label>
+        <label class="resume-field resume-full-span">Professional summary
+          <textarea class="form-input" rows="4" id="resume-summary" placeholder="Results-focused designer with hands-on experience crafting intuitive products and improving retention."></textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="resume-step-panel" id="resume-step-3" hidden>
+      <div class="resume-panel-title">Professional experience</div>
+      <div class="resume-panel-copy">Add key roles and outcomes to make the draft recruiter-ready.</div>
+      <div id="resume-experience-list"></div>
+      <button class="resume-secondary-button" type="button" onclick="addResumeExperienceEntry()">➕ Add experience</button>
+    </div>
+
+    <div class="resume-step-panel" id="resume-step-4" hidden>
+      <div class="resume-panel-title">Key skills</div>
+      <div class="resume-panel-copy">Use the keywords most relevant to your target role and generate a preview instantly.</div>
+      <div class="resume-field">
+        <div class="resume-tag-input-wrap">
+          <input class="form-input" type="text" id="resume-skill-input" placeholder="Add a skill and press Enter"/>
+          <button class="resume-improve-btn" type="button" onclick="addResumeSkillFromInput()">Add</button>
+        </div>
+      </div>
+      <div class="resume-tag-list" id="resume-skill-tags"></div>
+      <div class="resume-loading-state" id="resume-generated-state" hidden>
+        <div class="resume-spinner"></div>
+        <div>
+          <div class="resume-loading-title">Generating preview…</div>
+          <div class="resume-loading-copy">Your ATS-friendly draft is being composed.</div>
+        </div>
+      </div>
+      <div class="resume-preview-area" id="resume-preview-area"></div>
+    </div>
+
+    <div class="resume-modal-footer">
+      <div class="resume-modal-note">Tip: Your profile data from the dashboard updates these fields automatically.</div>
+      <div class="resume-modal-actions">
+        <button class="btn-secondary" id="resume-back-btn" type="button" onclick="resumeBuilderChangeStep(-1)">← Back</button>
+        <button class="btn-secondary" id="resume-download-btn" type="button" onclick="downloadResume()" hidden>Download Resume</button>
+        <button class="btn-primary" id="resume-next-btn" type="button" onclick="resumeBuilderChangeStep(1)">Next →</button>
+        <button class="btn-primary" id="resume-generate-btn" type="button" onclick="generateResumePreview()" hidden>Generate Preview</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mock Interview Prep Modal ── -->
+<div class="modal hidden" id="interview-prep-modal">
+  <div class="modal-box interview-prep-modal-box" style="max-width:980px;">
+    <div class="modal-header">
+      <div>
+        <div class="resume-modal-kicker">Mock Interview Coach</div>
+        <h3>Practice your interview responses</h3>
+      </div>
+      <button class="modal-close" onclick="closeModal('interview-prep-modal')">✕</button>
+    </div>
+
+    <div class="interview-prep-summary">
+      <div>
+        <div class="interview-prep-role" id="interview-prep-role">Product Designer</div>
+        <div class="interview-prep-subtitle">Run timed interview rounds, track your progress, and review detailed feedback.</div>
+      </div>
+      <div class="interview-prep-pill">Live mock test</div>
+    </div>
+
+    <div class="interview-prep-grid" style="grid-template-columns:1.55fr 1fr;gap:20px;">
+      <div>
+        <section class="interview-panel-card" style="margin-bottom:18px;">
+          <div class="interview-panel-title">Setup your mock interview</div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+            <label class="interview-prep-field">
+              <span>Job role</span>
+              <select id="mock-role" class="filter-select">
+                <option value="SDE">SDE</option>
+                <option value="Backend Dev">Backend Dev</option>
+                <option value="Frontend Dev">Frontend Dev</option>
+                <option value="DevOps Engineer">DevOps Engineer</option>
+                <option value="QA Engineer">QA Engineer</option>
+                <option value="Data Analyst">Data Analyst</option>
+                <option value="Product Manager">Product Manager</option>
+                <option value="UX/UI Designer">UX/UI Designer</option>
+                <option value="Business Analyst">Business Analyst</option>
+                <option value="Marketing">Marketing</option>
+              </select>
+            </label>
+            <label class="interview-prep-field">
+              <span>Difficulty</span>
+              <select id="mock-difficulty" class="filter-select">
+                <option value="Easy">Easy</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </label>
+            <label class="interview-prep-field">
+              <span>Question count</span>
+              <select id="mock-count" class="filter-select">
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="7">7</option>
+                <option value="10" selected>10</option>
+              </select>
+            </label>
+            <label class="interview-prep-field">
+              <span>Time per question</span>
+              <select id="mock-time" class="filter-select">
+                <option value="1">1 min</option>
+                <option value="2">2 min</option>
+                <option value="3" selected>3 min</option>
+                <option value="4">4 min</option>
+                <option value="5">5 min</option>
+              </select>
+            </label>
+            <label class="interview-prep-field" style="grid-column:1 / -1;">
+              <span>Answer language</span>
+              <select id="mock-language" class="filter-select">
+                <option value="English" selected>English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Marathi">Marathi</option>
+                <option value="Tamil">Tamil</option>
+                <option value="Telugu">Telugu</option>
+                <option value="Bengali">Bengali</option>
+                <option value="Gujarati">Gujarati</option>
+                <option value="Kannada">Kannada</option>
+                <option value="Malayalam">Malayalam</option>
+              </select>
+            </label>
+            <fieldset class="interview-prep-field" style="grid-column:1 / -1;padding:0;border:none;margin:0;">
+              <legend style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;">Question categories</legend>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+                <label><input type="checkbox" value="Technical" class="mock-type-checkbox" checked> Technical</label>
+                <label><input type="checkbox" value="Behavioural" class="mock-type-checkbox" checked> Behavioural</label>
+                <label><input type="checkbox" value="Situational" class="mock-type-checkbox"> Situational</label>
+                <label><input type="checkbox" value="System Design" class="mock-type-checkbox"> System Design</label>
+                <label><input type="checkbox" value="HR" class="mock-type-checkbox" checked> HR</label>
+                <label><input type="checkbox" value="Mixed" class="mock-type-checkbox"> Mixed</label>
+              </div>
+            </fieldset>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="interview-coach-cta" id="start-mock-btn" type="button">Start Interview</button>
+            <button class="resume-secondary-button" id="reset-mock-btn" type="button">Reset</button>
+          </div>
+        </section>
+
+        <section class="interview-panel-card" id="mock-session-card" style="display:none;margin-bottom:18px;">
+          <div class="interview-panel-title">Live Mock Interview</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:.92rem;font-weight:700;color:var(--text);">Question <span id="mock-question-number">1</span> of <span id="mock-total-count">0</span></div>
+              <div id="current-question-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+              <div style="text-align:right;">
+                <div style="font-size:.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Time left</div>
+                <div id="mock-timer" style="font-size:1.45rem;font-weight:800;color:var(--pk600);">03:00</div>
+              </div>
+            </div>
+          </div>
+          <div class="interview-question-list" id="current-question-text" style="min-height:84px;font-size:.95rem;line-height:1.6;padding:14px;border:1px solid rgba(244,114,182,.24);border-radius:14px;background:#fff5f7;color:var(--text);margin-bottom:12px;">Your question will appear here once you start the mock interview.</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+            <div style="font-size:.82rem;color:var(--text2);">Keep responses concise and highlight action + outcome. Use the hint button if you need a suggestion.</div>
+            <div style="font-size:.78rem;color:var(--pk700);font-weight:700;">Round active</div>
+          </div>
+          <div class="interview-panel-title" style="margin-bottom:10px;font-size:.88rem;">Your answer</div>
+          <textarea class="form-input" id="mock-answer-input" rows="8" placeholder="Answer in the selected language. You can use voice input too."></textarea>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;justify-content:space-between;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="resume-secondary-button" id="hint-btn" type="button">Get Hint</button>
+              <button class="resume-secondary-button" id="skip-btn" type="button">Skip</button>
+            </div>
+            <button class="interview-coach-cta" id="submit-answer-btn" type="button">Submit Answer</button>
+          </div>
+          <div class="interview-feedback-box" id="hint-box" style="margin-top:12px;min-height:64px;">Hint will appear here.</div>
+        </section>
+
+        <section class="interview-panel-card" id="results-card" style="display:none;">
+          <div class="interview-panel-title">Post-Interview Analysis</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div style="background:#fff5f7;border:1px solid rgba(244,114,182,.24);border-radius:16px;padding:16px;text-align:center;">
+              <div style="font-size:.78rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Overall score</div>
+              <div id="overall-score-display" style="font-size:2.5rem;font-weight:800;color:var(--pk600);">0</div>
+              <div id="certificate-level" style="font-size:.9rem;color:var(--text3);margin-top:6px;">Competent</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+              <div style="background:#fff;border:1px solid rgba(244,114,182,.22);border-radius:14px;padding:12px;text-align:center;">
+                <div style="font-size:.72rem;color:var(--text3);">Communication</div>
+                <div id="comm-score-display" style="font-size:1.2rem;font-weight:700;color:var(--text);">0/10</div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(244,114,182,.22);border-radius:14px;padding:12px;text-align:center;">
+                <div style="font-size:.72rem;color:var(--text3);">Technical</div>
+                <div id="tech-score-display" style="font-size:1.2rem;font-weight:700;color:var(--text);">0/10</div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(244,114,182,.22);border-radius:14px;padding:12px;text-align:center;">
+                <div style="font-size:.72rem;color:var(--text3);">Problem Solving</div>
+                <div id="problem-score-display" style="font-size:1.2rem;font-weight:700;color:var(--text);">0/10</div>
+              </div>
+              <div style="background:#fff;border:1px solid rgba(244,114,182,.22);border-radius:14px;padding:12px;text-align:center;">
+                <div style="font-size:.72rem;color:var(--text3);">Confidence</div>
+                <div id="confidence-score-display" style="font-size:1.2rem;font-weight:700;color:var(--text);">0/10</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <span class="interview-coach-badge" id="level-label-display">Level: Competent</span>
+            <span class="interview-coach-badge" id="hireability-display">Hireability: Borderline</span>
+          </div>
+          <div class="interview-feedback-box" id="strengths-box" style="margin-bottom:12px;"></div>
+          <div class="interview-feedback-box" id="improvements-box" style="margin-bottom:12px;"></div>
+          <div style="overflow:auto;max-height:220px;border:1px solid rgba(244,114,182,.22);border-radius:14px;padding:12px;background:#fff5f7;">
+            <table style="width:100%;border-collapse:collapse;font-size:.84rem;color:var(--text2);">
+              <thead>
+                <tr style="text-align:left;color:var(--text3);font-size:.78rem;">
+                  <th style="padding:8px 6px">#</th>
+                  <th style="padding:8px 6px">Question</th>
+                  <th style="padding:8px 6px">Score</th>
+                  <th style="padding:8px 6px">Verdict</th>
+                </tr>
+              </thead>
+              <tbody id="breakdown-body"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;justify-content:flex-end;">
+            <button class="interview-coach-cta" id="retry-same-test-btn" type="button">Retry Same Test</button>
+            <button class="resume-secondary-button" id="new-test-btn" type="button">New Interview</button>
+            <button class="resume-secondary-button" id="save-report-btn" type="button">Save Report</button>
+          </div>
+        </section>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <section class="interview-panel-card">
+          <div class="interview-panel-title">Question bank</div>
+          <div style="display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:10px;margin-top:12px;">
+            <button class="resume-secondary-button" type="button" onclick="refreshInterviewQuestions()">Refresh prompts</button>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.5;">Questions are filtered by role and difficulty for realistic practice.</div>
+          </div>
+          <div class="interview-question-list" id="interview-question-list" style="margin-top:12px;max-height:320px;overflow:auto;"></div>
+        </section>
+
+        <section class="interview-panel-card" style="background:#fdf2f8;">
+          <div class="interview-panel-title">Quick coaching tip</div>
+          <p style="margin:10px 0 0;color:var(--text2);font-size:.85rem;line-height:1.6;">
+            Practice concise storytelling, mention impact, and structure your answers with action-first language. Strong mock interview confidence comes from rehearsing key examples out loud.
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Vacancy Details Modal ── -->
+<div class="modal hidden" id="vacancy-modal">
+  <div class="modal-box wide vacancy-modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="vacancy-modal-kicker">Open Vacancy</div>
+        <h3 id="vacancy-modal-title">Job Title</h3>
+      </div>
+      <button class="modal-close" onclick="closeModal('vacancy-modal')">✕</button>
+    </div>
+
+    <div class="vacancy-modal-meta">
+      <div class="vacancy-meta-pill" id="vacancy-modal-company">Company</div>
+      <div class="vacancy-meta-pill" id="vacancy-modal-location">Location</div>
+      <div class="vacancy-meta-pill" id="vacancy-modal-type">Type</div>
+    </div>
+
+    <div class="vacancy-detail-grid">
+      <div class="vacancy-detail-card">
+        <div class="vacancy-detail-label">Salary</div>
+        <div class="vacancy-detail-value" id="vacancy-modal-salary">—</div>
+      </div>
+      <div class="vacancy-detail-card">
+        <div class="vacancy-detail-label">Deadline</div>
+        <div class="vacancy-detail-value" id="vacancy-modal-deadline">—</div>
+      </div>
+      <div class="vacancy-detail-card">
+        <div class="vacancy-detail-label">Experience</div>
+        <div class="vacancy-detail-value" id="vacancy-modal-experience">—</div>
+      </div>
+    </div>
+
+    <div class="vacancy-modal-section">
+      <div class="vacancy-section-title">Job Description</div>
+      <div class="vacancy-section-text" id="vacancy-modal-description">—</div>
+    </div>
+    <div class="vacancy-modal-section">
+      <div class="vacancy-section-title">Required Skills</div>
+      <div class="vacancy-skill-list" id="vacancy-modal-skills"></div>
+    </div>
+    <div class="vacancy-modal-section" id="vacancy-modal-requirements-wrap">
+      <div class="vacancy-section-title">Requirements</div>
+      <div class="vacancy-section-text" id="vacancy-modal-requirements">—</div>
+    </div>
+
+    <div class="vacancy-modal-footer">
+      <div class="vacancy-footer-note">Ready to apply? Submit directly from here.</div>
+      <div class="vacancy-footer-actions">
+        <button class="btn-secondary" onclick="closeModal('vacancy-modal')">Close</button>
+        <button class="btn-primary" id="vacancy-modal-apply" onclick="applyDashVacancy(currentVacancyId, this)">Apply Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="dash-footer">HireBloom © 2026 · Made with 🌸 for job seekers everywhere</div>
 
 {% endblock %}
@@ -283,13 +716,129 @@
 .qai-purple{background:#ede9fe;color:#7c3aed}
 .qa-label{font-size:.74rem;font-weight:600;color:var(--text2)}
 
+#recent-apps{display:flex;flex-direction:column;gap:8px}
+
 /* App rows in dashboard */
-.dash-app-row{background:var(--white);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1.5px solid var(--border);border-left:4px solid var(--pk400);transition:all .2s;cursor:pointer}
+.dash-app-row{background:var(--white);border-radius:12px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px;border:1.5px solid var(--border);border-left:4px solid var(--pk400);transition:all .2s;cursor:pointer}
 .dash-app-row:hover{transform:translateX(3px);box-shadow:0 4px 16px rgba(219,39,119,.12);border-color:var(--pk300)}
 .dash-app-row.s-offer{border-left-color:#16a34a}
 .dash-app-row.s-interview{border-left-color:#d97706}
 .dash-app-row.s-rejected{border-left-color:#e11d48}
 .dash-app-row.s-applied{border-left-color:var(--pk400)}
+.dash-app-row .app-info{align-items:flex-start}
+.dash-app-row .badge{align-self:flex-start;justify-self:end; margin-top:2px}
+@media(max-width:640px){
+  .dash-app-row{grid-template-columns:1fr}
+  .dash-app-row .badge{justify-self:start}
+}
+
+/* Profile card polish */
+.profile-card{align-items:center! important}
+
+/* AI Interview Prep Coach */
+.interview-coach-section{display:flex;flex-direction:column;gap:12px;background:linear-gradient(180deg,#fff8fb 0%,#ffe9f0 100%);border-color:rgba(219,39,119,.22)}
+.interview-coach-badge{display:inline-flex;align-items:center;border-radius:999px;background:#fff;color:var(--pk600);border:1px solid rgba(219,39,119,.26);padding:4px 10px;font-size:.68rem;font-weight:800;letter-spacing:.04em}
+.interview-coach-copy p{margin:0;color:var(--text2);font-size:.78rem;line-height:1.45}
+.interview-coach-highlights{display:flex;flex-wrap:wrap;gap:8px}
+.interview-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:rgba(255,255,255,.72);border:1px solid rgba(219,39,119,.2);padding:6px 10px;color:var(--pk700);font-size:.68rem;font-weight:800}
+.interview-coach-cta{background:linear-gradient(135deg,#fb7185,#ec4899);color:#fff;border:none;border-radius:999px;padding:10px 14px;font-size:.78rem;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(219,39,119,.24)}
+
+/* AI Resume Builder */
+.resume-builder-section{display:flex;flex-direction:column;gap:14px}
+.resume-badge{display:inline-flex;align-items:center;border-radius:999px;background:#fff0f3;color:var(--pk600);border:1px solid rgba(219,39,119,.2);padding:4px 10px;font-size:.68rem;font-weight:700;letter-spacing:.04em}
+.resume-hero-card{
+  display:flex;align-items:center;gap:14px;
+  background:linear-gradient(135deg,#fb7185,#ec4899 38%,#8b5cf6);
+  color:#fff;border-radius:20px;padding:18px 18px 18px 16px;
+  box-shadow:0 10px 24px rgba(219,39,119,.22)
+}
+.resume-hero-icon{width:42px;height:42px;flex-shrink:0;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:rgba(255,255,255,.18);backdrop-filter:blur(4px)}
+.resume-hero-copy{flex:1;min-width:0}
+.resume-hero-copy h3{font-family:'Playfair Display',serif;font-size:1.08rem;font-weight:700;margin:0 0 6px;line-height:1.2}
+.resume-hero-copy p{margin:0;font-size:.79rem;line-height:1.4;color:rgba(255,255,255,.88)}
+.resume-cta{
+  flex-shrink:0;background:#fff;color:#be185d;border:none;border-radius:999px;
+  padding:10px 14px;font-size:.78rem;font-weight:800;cursor:pointer;
+  box-shadow:0 6px 16px rgba(15,23,42,.18)
+}
+.resume-feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.resume-feature-card{
+  background:#fff0f3;border:1px solid rgba(244,114,182,.22);
+  border-radius:16px;padding:12px 11px;box-shadow:0 4px 12px rgba(244,114,182,.12)
+}
+.resume-feature-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#ffe4ea;color:#db2777;font-size:.88rem;margin-bottom:10px}
+.resume-feature-title{font-size:.82rem;font-weight:800;color:var(--text);margin-bottom:4px}
+.resume-feature-text{font-size:.72rem;color:var(--text2);line-height:1.35}
+.resume-tips-card{
+  background:#fff5f7;border:1px solid rgba(244,114,182,.24);
+  border-radius:16px;padding:12px 13px;box-shadow:0 4px 12px rgba(244,114,182,.12)
+}
+.resume-tips-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.resume-tips-icon{font-size:1rem}
+.resume-tips-title{font-size:.84rem;font-weight:800;color:var(--text)}
+.resume-tips-list{margin:0;padding-left:18px;color:var(--text2);font-size:.77rem;line-height:1.5;display:flex;flex-direction:column;gap:4px}
+@media(max-width:700px){
+  .resume-hero-card{flex-direction:column;align-items:flex-start}
+  .resume-feature-grid{grid-template-columns:1fr}
+}
+
+.resume-builder-modal-box{max-width:900px}
+.resume-modal-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.resume-modal-header h3{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--text);margin:0}
+.resume-modal-kicker{font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--pk600)}
+.resume-step-progress{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.resume-step-indicator{display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:var(--text2);font-weight:700}
+.resume-step-track{height:8px;border-radius:999px;background:#ffe4ea;overflow:hidden}
+.resume-step-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#fb7185,#ec4899);transition:width .35s ease}
+.resume-step-panel{display:flex;flex-direction:column;gap:12px;animation:fadeUp .25s ease}
+.resume-panel-title{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--text)}
+.resume-panel-copy{font-size:.78rem;color:var(--text2);line-height:1.4}
+.resume-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.resume-field{display:flex;flex-direction:column;gap:6px;font-size:.78rem;font-weight:700;color:var(--text2)}
+.resume-full-span{grid-column:1 / -1}
+.resume-field .form-input{margin-bottom:0}
+.resume-secondary-button{background:#fff0f5;border:1.5px solid rgba(219,39,119,.25);color:var(--pk700);border-radius:999px;padding:9px 14px;font-size:.76rem;font-weight:800;cursor:pointer}
+.resume-tag-input-wrap{display:flex;align-items:center;gap:8px}
+.resume-tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.resume-tag-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:var(--pk100);color:var(--pk700);padding:6px 10px;font-size:.72rem;font-weight:800}
+.resume-tag-remove{border:none;background:none;color:var(--pk600);cursor:pointer;font-size:.84rem}
+.resume-experience-entry{background:#fffafc;border:1px solid rgba(244,114,182,.24);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.resume-experience-header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.resume-experience-title{font-size:.82rem;font-weight:800;color:var(--text)}
+.resume-experience-remove{background:#fff0f5;border:1px solid rgba(219,39,119,.2);color:var(--pk700);border-radius:999px;padding:5px 9px;font-size:.7rem;font-weight:800;cursor:pointer}
+.resume-improve-btn{background:linear-gradient(135deg,#fb7185,#ec4899);color:#fff;border:none;border-radius:999px;padding:7px 10px;font-size:.68rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.resume-loading-state{display:flex;align-items:center;gap:12px;background:#fff5f7;border:1px solid rgba(244,114,182,.24);border-radius:14px;padding:14px}
+.resume-spinner{width:28px;height:28px;border-radius:50%;border:3px solid rgba(244,114,182,.25);border-top-color:var(--pk500);animation:spin .9s linear infinite;flex-shrink:0}
+.resume-loading-title{font-size:.84rem;font-weight:800;color:var(--text)}
+.resume-loading-copy{font-size:.72rem;color:var(--text2)}
+.resume-preview-area{border:1.5px solid rgba(244,114,182,.25);border-radius:16px;padding:16px;background:#fff;max-height:52vh;overflow:auto}
+.resume-preview-root{font-family:Arial, sans-serif;color:#1f2937;line-height:1.5}
+.resume-preview-root h1{font-size:1.4rem;margin:0 0 8px;color:#1f2937}
+.resume-preview-root .resume-subtitle{font-size:.78rem;color:#6b7280;margin-bottom:10px}
+.resume-preview-root .resume-section{margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb}
+.resume-preview-root .resume-section h2{font-size:.95rem;color:#db2777;margin:0 0 8px}
+.resume-preview-root .resume-list{margin:0;padding-left:18px}
+.resume-preview-root .resume-list li{margin-bottom:5px}
+.resume-preview-root .resume-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:.74rem;color:#4b5563}
+.resume-modal-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(219,39,119,.18)}
+.resume-modal-note{font-size:.72rem;color:var(--text2)}
+.resume-modal-actions{display:flex;gap:10px}
+.interview-prep-modal-box{max-width:900px}
+.interview-prep-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff5f7;border:1px solid rgba(244,114,182,.24);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.interview-prep-role{font-size:1rem;font-weight:800;color:var(--text)}
+.interview-prep-subtitle{font-size:.74rem;color:var(--text2);margin-top:2px}
+.interview-prep-pill{background:linear-gradient(135deg,#fb7185,#ec4899);color:#fff;border-radius:999px;padding:6px 10px;font-size:.68rem;font-weight:800}
+.interview-prep-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+.interview-panel-card{background:#fffafc;border:1px solid rgba(244,114,182,.22);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.interview-panel-title{font-size:.84rem;font-weight:800;color:var(--text)}
+.interview-question-list{display:flex;flex-direction:column;gap:8px}
+.interview-question-item{background:#fff;border:1px solid rgba(244,114,182,.18);border-radius:12px;padding:10px;font-size:.78rem;color:var(--text2);line-height:1.4}
+.interview-feedback-box{background:#fff;border:1px solid rgba(244,114,182,.18);border-radius:12px;padding:12px;min-height:160px;color:var(--text2);font-size:.78rem;line-height:1.5}
+.interview-empty-state{color:var(--text3)}
+.interview-actions{display:flex;justify-content:flex-end}
+@media(max-width:800px){
+  .resume-form-grid,.interview-prep-grid{grid-template-columns:1fr}
+}
 
 /* Progress */
 .progress-wrap{margin:10px 0 6px}
@@ -314,19 +863,77 @@
 .leg-item{display:flex;align-items:center;gap:5px;font-size:.73rem;color:var(--text2)}
 .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .dot-green{background:#10b981}.dot-pink{background:var(--pk400)}.dot-blue{background:#3b82f6}.dot-red{background:#ef4444}
+
+/* HR vacancies on applicant dashboard */
+.dash-vac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;align-items:stretch}
+.dash-vac-card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:16px;transition:all .2s;display:flex;flex-direction:column;height:100%}
+.dash-vac-card.vacancy-clickable{cursor:pointer}
+.dash-vac-card:hover{border-color:var(--pk300);box-shadow:0 6px 20px rgba(219,39,119,.12);transform:translateY(-2px)}
+.dash-vac-top{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.dash-vac-logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--pk300),var(--pk500));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;flex-shrink:0}
+.dash-vac-title{font-size:.94rem;font-weight:800;color:var(--text);line-height:1.3}
+.dash-vac-company{font-size:.78rem;color:var(--text2);margin-top:3px}
+.dash-vac-meta{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.dash-vac-chip{font-size:.71rem;font-weight:700;border-radius:20px;padding:3px 9px;background:var(--pk50);border:1px solid var(--pk100);color:var(--pk600)}
+.dash-vac-chip.blue{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.dash-vac-chip.green{background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+.dash-vac-chip.amber{background:#fefce8;border-color:#fde68a;color:#92400e}
+.dash-vac-chip.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}
+.dash-vac-desc{font-size:.78rem;color:var(--text2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.dash-vac-experience{font-size:.71rem;font-weight:700;color:var(--pk600);background:var(--pk50);border:1px solid var(--pk200);border-radius:999px;padding:4px 9px;display:inline-flex;align-items:center;margin-bottom:10px;width:max-content}
+.dash-vac-note{font-size:.74rem;color:var(--text3);line-height:1.45;margin-bottom:12px}
+.dash-vac-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px;border-top:1px solid var(--border);margin-top:auto}
+.dash-vac-date{font-size:.72rem;color:var(--text3)}
+.dash-vac-apply{background:linear-gradient(135deg,var(--pk400),var(--pk600));color:#fff;border:none;padding:7px 15px;border-radius:18px;font-size:.76rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.dash-vac-apply:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(219,39,119,.28)}
+.dash-vac-apply:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.dash-vac-applied{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;padding:6px 12px;border-radius:18px;font-size:.76rem;font-weight:700;white-space:nowrap}
+
+/* Vacancy detail modal */
+.vacancy-modal-box{max-width:720px}
+.vacancy-modal-kicker{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--pk600);margin-bottom:4px}
+.vacancy-modal-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.vacancy-meta-pill{background:var(--pk50);border:1px solid var(--pk200);color:var(--pk700);border-radius:999px;padding:6px 10px;font-size:.71rem;font-weight:700}
+.vacancy-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.vacancy-detail-card{background:#fff5f7;border:1px solid rgba(244,114,182,.22);border-radius:14px;padding:12px}
+.vacancy-detail-label{font-size:.68rem;font-weight:800;color:var(--pk600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.vacancy-detail-value{font-size:.9rem;font-weight:700;color:var(--text)}
+.vacancy-modal-section{background:#fffafc;border:1px solid rgba(244,114,182,.18);border-radius:14px;padding:14px;margin-bottom:10px}
+.vacancy-section-title{font-size:.82rem;font-weight:800;color:var(--pk700);margin-bottom:8px}
+.vacancy-section-text{font-size:.84rem;color:var(--text2);line-height:1.55}
+.vacancy-skill-list{display:flex;flex-wrap:wrap;gap:8px}
+.vacancy-skill-chip{display:inline-flex;align-items:center;border-radius:999px;background:var(--pk100);color:var(--pk700);padding:6px 10px;font-size:.72rem;font-weight:700}
+.vacancy-modal-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:10px;border-top:1px solid var(--border)}
+.vacancy-footer-note{font-size:.78rem;color:var(--text3)}
+.vacancy-footer-actions{display:flex;gap:10px}
+@media(max-width:700px){
+  .vacancy-detail-grid{grid-template-columns:1fr}
+  .vacancy-modal-footer{flex-direction:column;align-items:stretch}
+}
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
 // ── Helpers ──
+const SESSION_USER_NAME = document.body.dataset.userName || 'User';
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function safeParseJSON(value, fallback = null){
+  try {
+    return value === null || value === undefined ? fallback : JSON.parse(value);
+  } catch (error) {
+    return fallback;
+  }
+}
 const COLORS = ['co-a','co-b','co-c','co-d','co-e','co-f','co-g'];
 function colorFor(str){ let h=0; for(let c of str) h=(h<<5)-h+c.charCodeAt(0); return COLORS[Math.abs(h)%COLORS.length]; }
-function initials(str){ return str.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+function initials(str){ return String(str||'').trim().split(/\s+/).filter(Boolean).map(w=>w[0]).join('').substring(0,2).toUpperCase() || 'U'; }
 
 // ── Load Dashboard ──
 let dashAllApps = [];
+let dashVacancyCatalog = [];
+let dashAppliedVacancyIds = new Set();
+let currentVacancyId = null;
 async function loadDashboard() {
   const [stats, apps] = await Promise.all([
     fetch('/api/applications/stats').then(r=>r.json()).catch(()=>({total:0,applied:0,interview:0,offer:0,rejected:0,upcoming_deadlines:0,upcoming_interviews:0})),
@@ -345,6 +952,8 @@ async function loadDashboard() {
   renderHRNotifications(apps);
   renderDashApps(apps);
   updateProgress(apps);
+  if (window.refreshNavNotifications) window.refreshNavNotifications();
+  loadDashVacancies(apps);
   loadDashReminders();
   loadDashEvents();
 }
@@ -357,13 +966,20 @@ function renderDashApps(apps){
     const sLow = (a.status||'applied').toLowerCase();
     const hrStatus = a.hr_status && a.hr_status!=='Pending' ? a.hr_status : null;
     const hrCls = !hrStatus?'':['Hired','Eligible'].includes(hrStatus)?'b-offer':hrStatus==='Interview'?'b-interview':['Rejected','Not Eligible'].includes(hrStatus)?'b-rejected':'b-pending';
+    const hrNote = String(a.hr_notes || '').trim();
+    const interviewDate = String(a.interview_datetime || '').trim();
+    const hasHRUpdate = !!(hrStatus || hrNote || interviewDate);
     return `<div class="dash-app-row s-${sLow}">
       <div class="app-info">
         <div class="co-avatar ${colorFor(a.company)}">${initials(a.company)}</div>
         <div class="app-info-text">
           <strong>${escHtml(a.company)}</strong>
           <div class="app-meta">${escHtml(a.position)}${a.location?' · '+escHtml(a.location):''}${a.application_date?' · '+escHtml(a.application_date):''}</div>
-          ${hrStatus?`<div style="margin-top:3px;font-size:.73rem;color:var(--text3)">HR: <span class="badge ${hrCls}" style="font-size:.65rem;padding:2px 8px">${escHtml(hrStatus)}</span>${a.hr_notes?` — <em>${escHtml(a.hr_notes)}</em>`:''}</div>`:''}
+          ${hasHRUpdate?`<div style="margin-top:4px;font-size:.73rem;color:var(--text3);display:flex;flex-direction:column;gap:3px">
+            ${hrStatus?`<div>HR: <span class="badge ${hrCls}" style="font-size:.65rem;padding:2px 8px">${escHtml(hrStatus)}</span></div>`:''}
+            ${hrNote?`<div>💬 <em>${escHtml(hrNote)}</em></div>`:''}
+            ${interviewDate?`<div>📅 Interview: <strong>${escHtml(interviewDate)}</strong></div>`:''}
+          </div>`:''}
         </div>
       </div>
       <span class="badge ${BADGE[sLow]||'b-applied'}">${escHtml(a.status)}</span>
@@ -382,7 +998,7 @@ function filterDashApps(){
 }
 
 function renderHRNotifications(apps){
-  const updates = apps.filter(a=>['Hired','Eligible','Interview','Rejected','Not Eligible'].includes(a.hr_status));
+  const updates = apps.filter(a=>['Hired','Eligible','Interview','Rejected','Not Eligible'].includes(a.hr_status) || String(a.hr_notes || '').trim());
   const el = document.getElementById('hr-notifications');
   if (!updates.length){ el.innerHTML=''; return; }
   el.innerHTML = `<div style="background:linear-gradient(120deg,#fff0f8,#fce7f3,#ffd6e7);border:1.5px solid var(--pk200);border-radius:18px;padding:20px 24px;margin-bottom:26px;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden">
@@ -390,7 +1006,7 @@ function renderHRNotifications(apps){
     <div style="width:48px;height:48px;flex-shrink:0;background:linear-gradient(135deg,var(--pk300),var(--pk500));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 4px 12px rgba(219,39,119,.25)">✨</div>
     <div style="flex:1">
       <div style="font-size:1rem;font-weight:700;color:var(--pk700);margin-bottom:3px">You have ${updates.length} new HR update${updates.length>1?'s':''} today</div>
-      <div style="font-size:.82rem;color:var(--text2);line-height:1.5">${updates.slice(0,2).map(a=>`${escHtml(a.company)} → ${escHtml(a.hr_status)}`).join(' · ')}</div>
+      <div style="font-size:.82rem;color:var(--text2);line-height:1.5">${updates.slice(0,2).map(a=>`${escHtml(a.company)}${a.hr_status && a.hr_status!=='Pending' ? ` → ${escHtml(a.hr_status)}` : ''}`).join(' · ')}</div>
     </div>
     <button class="wb-btn" onclick="document.getElementById('hr-notif-card').scrollIntoView({behavior:'smooth'})" style="background:linear-gradient(135deg,var(--pk400),var(--pk600));color:#fff;border:none;padding:9px 22px;border-radius:20px;font-size:.83rem;font-weight:600;box-shadow:0 3px 12px rgba(219,39,119,.28);transition:all .2s;white-space:nowrap;flex-shrink:0;cursor:pointer">View Updates</button>
   </div>`;
@@ -399,15 +1015,23 @@ function renderHRNotifications(apps){
   notifCard.style.display = 'block';
   const BADGE = {applied:'b-applied',interview:'b-interview',offer:'b-offer',rejected:'b-rejected'};
   document.getElementById('hr-notif-list').innerHTML = updates.slice(0,4).map(a=>{
-    const isGood=['Hired','Eligible'].includes(a.hr_status);
-    const isInt=a.hr_status==='Interview';
-    const cls=isGood?'hr-selected':isInt?'hr-interview':'hr-rejected';
-    const icon=isGood?'🎉':isInt?'📅':'📋';
+    const hrStatus = a.hr_status && a.hr_status!=='Pending' ? a.hr_status : null;
+    const isGood=['Hired','Eligible'].includes(hrStatus);
+    const isInt=hrStatus==='Interview';
+    const cls=isGood?'hr-selected':isInt?'hr-interview':hrStatus?'hr-rejected':'hr-selected';
+    const icon=isGood?'🎉':isInt?'📅':hrStatus?'📋':'💬';
+    const message = String(a.hr_notes || '').trim();
+    const interviewDate = String(a.interview_datetime || '').trim();
+    const detailParts = [];
+    if (message) detailParts.push(`HR says: "<em>${escHtml(message)}</em>"`);
+    if (hrStatus) detailParts.push(`Status updated to <strong>${escHtml(hrStatus)}</strong>.`);
+    if (interviewDate) detailParts.push(`📅 Interview scheduled: <strong>${escHtml(interviewDate)}</strong>`);
+
     return `<div class="hr-banner ${cls}">
       <div class="hr-icon">${icon}</div>
       <div>
-        <div class="hr-title">${isGood?'Selected':'Update'} — ${escHtml(a.company)}</div>
-        <div class="hr-msg">${a.hr_notes?`HR says: "<em>${escHtml(a.hr_notes)}</em>"`:`Status updated to <strong>${escHtml(a.hr_status)}</strong>.`}</div>
+        <div class="hr-title">${hrStatus? (isGood?'Selected':isInt?'Interview':'Update') : 'HR Message'} — ${escHtml(a.company)}</div>
+        <div class="hr-msg">${detailParts.join(' ')}</div>
         <span class="hr-pill ${isGood?'green':isInt?'yellow':'red'}">${escHtml(a.position)}</span>
       </div>
     </div>`;
@@ -430,6 +1054,133 @@ function updateProgress(apps){
     document.getElementById('d-intv-bar').style.width = intv+'%';
     document.getElementById('d-offr-bar').style.width = offr+'%';
   }, 400);
+}
+
+async function loadDashVacancies(apps = []){
+  const el = document.getElementById('dash-vacancies');
+  const countEl = document.getElementById('dash-vac-count');
+  try{
+    const vacs = await fetch('/api/vacancies').then(r=>r.json());
+    dashVacancyCatalog = vacs;
+    countEl.textContent = `${vacs.length} opening${vacs.length!==1?'s':''}`;
+    if(!vacs.length){
+      el.innerHTML = '<p class="empty">No vacancies posted by HR yet.</p>';
+      return;
+    }
+    dashAppliedVacancyIds = new Set();
+    apps.forEach(a=>{
+      const match = vacs.find(v=>v.title===a.position && v.company===a.company);
+      if(match) dashAppliedVacancyIds.add(match.id);
+    });
+    el.innerHTML = `<div class="dash-vac-grid">${vacs.map(v=>dashVacancyCard(v, dashAppliedVacancyIds.has(v.id))).join('')}</div>`;
+  }catch(e){
+    countEl.textContent = 'Unavailable';
+    el.innerHTML = '<p class="empty">Failed to load vacancies.</p>';
+  }
+}
+
+function normalizeVacancySkills(v){
+  if(Array.isArray(v.skills)) return v.skills.map(s=>String(s).trim()).filter(Boolean).slice(0,6);
+  if(typeof v.skills === 'string') return v.skills.split(',').map(s=>s.trim()).filter(Boolean).slice(0,6);
+  return [];
+}
+
+function openVacancyModal(id){
+  const v = dashVacancyCatalog.find(item => item.id === id);
+  if(!v) return;
+  currentVacancyId = id;
+
+  document.getElementById('vacancy-modal-title').textContent = v.title || 'Job Opportunity';
+  document.getElementById('vacancy-modal-company').textContent = v.company || 'Company';
+  document.getElementById('vacancy-modal-location').textContent = v.location || 'Location TBD';
+  document.getElementById('vacancy-modal-type').textContent = v.job_type || 'Full-time';
+  document.getElementById('vacancy-modal-salary').textContent = v.salary || 'Not specified';
+  document.getElementById('vacancy-modal-deadline').textContent = v.deadline || 'No deadline set';
+  document.getElementById('vacancy-modal-experience').textContent = v.experience || 'Experience not specified';
+  document.getElementById('vacancy-modal-description').textContent = v.description || 'No description provided.';
+
+  const requirementsEl = document.getElementById('vacancy-modal-requirements');
+  const requirementsWrap = document.getElementById('vacancy-modal-requirements-wrap');
+  if(v.requirements){
+    requirementsEl.textContent = v.requirements;
+    requirementsWrap.style.display = 'block';
+  } else {
+    requirementsEl.textContent = 'No specific requirements listed.';
+    requirementsWrap.style.display = 'block';
+  }
+
+  const skillsEl = document.getElementById('vacancy-modal-skills');
+  const skills = normalizeVacancySkills(v);
+  skillsEl.innerHTML = skills.length ? skills.map(s=>`<span class="vacancy-skill-chip">${escHtml(s)}</span>`).join('') : '<span class="vacancy-skill-chip">Skills not listed</span>';
+
+  const applyBtn = document.getElementById('vacancy-modal-apply');
+  const applied = dashAppliedVacancyIds.has(id);
+  applyBtn.disabled = applied;
+  applyBtn.textContent = applied ? 'Applied' : 'Apply Now';
+
+  openModal('vacancy-modal');
+}
+
+function dashVacancyCard(v, isApplied){
+  const logo = (v.company||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const summary = v.description || v.requirements || '';
+  const experience = v.experience ? `Experience: ${escHtml(v.experience)}` : '';
+  const skills = normalizeVacancySkills(v);
+  return `<div class="dash-vac-card vacancy-clickable" onclick="openVacancyModal(${v.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openVacancyModal(${v.id});}">
+    <div class="dash-vac-top">
+      <div class="dash-vac-logo">${escHtml(logo)}</div>
+      <div>
+        <div class="dash-vac-title">${escHtml(v.title)}</div>
+        <div class="dash-vac-company">${escHtml(v.company)}</div>
+      </div>
+    </div>
+    <div class="dash-vac-meta">
+      ${v.location?`<span class="dash-vac-chip blue">${escHtml(v.location)}</span>`:''}
+      ${v.job_type?`<span class="dash-vac-chip green">${escHtml(v.job_type)}</span>`:''}
+      ${v.salary?`<span class="dash-vac-chip amber">${escHtml(v.salary)}</span>`:''}
+      ${v.deadline?`<span class="dash-vac-chip">Deadline: ${escHtml(v.deadline)}</span>`:''}
+      ${v.experience?`<span class="dash-vac-chip purple">${escHtml(v.experience)}</span>`:''}
+    </div>
+    ${experience?`<div class="dash-vac-experience">${experience}</div>`:''}
+    ${summary?`<div class="dash-vac-desc">${escHtml(summary)}</div>`:''}
+    ${skills.length?`<div class="dash-vac-note">Skills: ${skills.map(s=>escHtml(s)).join(' • ')}</div>`:''}
+    <div class="dash-vac-footer">
+      <span class="dash-vac-date">Posted ${escHtml((v.created_at||'').substring(0,10))}</span>
+      ${isApplied
+        ? '<span class="dash-vac-applied">Applied</span>'
+        : `<button class="dash-vac-apply" onclick="event.stopPropagation(); applyDashVacancy(${v.id}, this)">Apply Now</button>`}
+    </div>
+  </div>`;
+}
+
+async function applyDashVacancy(id, btn){
+  btn.disabled = true;
+  btn.textContent = 'Applying...';
+  try{
+    const res = await fetch(`/api/vacancies/${id}/apply`, {method:'POST'});
+    const data = await res.json();
+    if(data.success){
+      dashAppliedVacancyIds.add(id);
+      btn.outerHTML = '<span class="dash-vac-applied">Applied</span>';
+      showToast('Application submitted!', 'success');
+      if(currentVacancyId===id){
+        const modalBtn = document.getElementById('vacancy-modal-apply');
+        if(modalBtn){
+          modalBtn.disabled = true;
+          modalBtn.textContent = 'Applied';
+        }
+      }
+      loadDashboard();
+    }else{
+      showToast(data.message || data.error || 'Could not apply.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Apply Now';
+    }
+  }catch(e){
+    showToast('Network error. Please try again.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Apply Now';
+  }
 }
 
 async function loadDashReminders(){
@@ -513,29 +1264,38 @@ function closeModal(id){document.getElementById(id).classList.add('hidden')}
 document.querySelectorAll('.modal').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden')})});
 
 // ── Add Application (modal) ──
-function addApplication(){
+async function addApplication(){
   const company=document.getElementById('m-company').value.trim();
   const role=document.getElementById('m-role').value.trim();
   if(!company||!role){showToast('Please fill in company and role.','error');return;}
-  const status=document.getElementById('m-status').value;
+  const statusValue=document.getElementById('m-status').value;
   const date=document.getElementById('m-date').value;
-  const statusBadge={applied:'b-applied',interview:'b-interview',offer:'b-offer',rejected:'b-rejected'};
   const statusLabel={applied:'Applied',interview:'Interview',offer:'Offer',rejected:'Rejected'};
-  const initStr=company.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  const clrs=['co-a','co-b','co-c','co-d','co-e','co-f','co-g'];
-  const clr=clrs[Math.floor(Math.random()*clrs.length)];
-  const dateStr=date?new Date(date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'Today';
-  const row=document.createElement('div');
-  row.className=`dash-app-row s-${status}`;
-  row.innerHTML=`<div class="app-info"><div class="co-avatar ${clr}">${initStr}</div><div class="app-info-text"><strong>${escHtml(company)}</strong><div class="app-meta">${escHtml(role)} · ${dateStr}</div></div></div><span class="badge ${statusBadge[status]}">${statusLabel[status]}</span>`;
-  const list=document.getElementById('recent-apps');
-  if(list.querySelector('.empty'))list.innerHTML='';
-  list.insertBefore(row,list.firstChild);
-  ['m-company','m-role','m-location','m-notes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('m-date').value='';
-  closeModal('add-app-modal');
-  showToast('Application added for '+company+' 🌸','success');
-  document.getElementById('s-total').textContent=parseInt(document.getElementById('s-total').textContent)+1;
+  const payload = {
+    company,
+    position: role,
+    location: document.getElementById('m-location').value.trim(),
+    status: statusLabel[statusValue] || 'Applied',
+    application_date: date,
+    notes: document.getElementById('m-notes').value.trim()
+  };
+  try{
+    const res = await fetch('/api/applications', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!res.ok){ showToast(data.error || 'Error adding application', 'error'); return; }
+    ['m-company','m-role','m-location','m-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('m-date').value='';
+    closeModal('add-app-modal');
+    showToast('Application added for '+company+' 🌸','success');
+    await loadDashboard();
+    if (window.refreshNavNotifications) window.refreshNavNotifications();
+  }catch(e){
+    showToast('Network error. Please try again.', 'error');
+  }
 }
 
 // ── Add Reminder (modal) ──
@@ -559,39 +1319,73 @@ function addReminder(){
 }
 
 // ── Profile ──
-let profileData = JSON.parse(localStorage.getItem('hirebloom-profile')||'{}');
-function loadProfileUI(){
-  if(profileData.name){
-    document.getElementById('dash-profile-name').textContent=profileData.name;
-    document.getElementById('dash-avatar-initials').textContent=profileData.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-    document.getElementById('p-name').value=profileData.name||'';
+let profileData = safeParseJSON(localStorage.getItem('hirebloom-profile'), {});
+
+async function loadProfileUI(){
+  try {
+    const response = await fetch('/api/profile');
+    if (response.ok) {
+      const serverProfile = await response.json();
+      if (serverProfile && Object.keys(serverProfile).length) {
+        profileData = { ...profileData, ...serverProfile };
+        localStorage.setItem('hirebloom-profile', JSON.stringify(profileData));
+      }
+    }
+  } catch (error) {
+    // Fall back to locally cached data if the server is unavailable.
   }
-  if(profileData.role) document.getElementById('dash-profile-role').textContent=profileData.role;
-  if(profileData.photo){
-    const av=document.getElementById('dash-avatar-display');
-    av.style.background='transparent';
-    av.innerHTML=`<img src="${profileData.photo}" style="width:100%;height:100%;object-fit:cover"/>`;
-    document.getElementById('profile-preview').style.background='transparent';
-    document.getElementById('profile-preview').innerHTML=`<img src="${profileData.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+
+  const displayName = (profileData.name || SESSION_USER_NAME || 'User').trim();
+  const avatarInitials = initials(displayName);
+  const dashProfileName = document.getElementById('dash-profile-name');
+  if (dashProfileName) dashProfileName.textContent = displayName;
+  const dashAvatarInitials = document.getElementById('dash-avatar-initials');
+  if (dashAvatarInitials) dashAvatarInitials.textContent = avatarInitials;
+  const profilePreviewInitials = document.getElementById('profile-preview-initials');
+  if (profilePreviewInitials) profilePreviewInitials.textContent = avatarInitials;
+  const pName = document.getElementById('p-name');
+  if (pName) pName.value = displayName;
+  const role = (profileData.role || 'Open to new opportunities').trim();
+  const dashProfileRole = document.getElementById('dash-profile-role');
+  if (dashProfileRole) dashProfileRole.textContent = role;
+  const av = document.getElementById('dash-avatar-display');
+  const prev = document.getElementById('profile-preview');
+  if (profileData.photo && av && prev) {
+    av.style.background = 'transparent';
+    av.innerHTML = `<img src="${profileData.photo}" style="width:100%;height:100%;object-fit:cover"/>`;
+    prev.style.background = 'transparent';
+    prev.innerHTML = `<img src="${profileData.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    if (profilePreviewInitials) profilePreviewInitials.textContent = '';
+  } else if (av && prev) {
+    av.style.background = 'linear-gradient(135deg, var(--pk300), var(--pk600))';
+    av.innerHTML = `<span id="dash-avatar-initials">${avatarInitials}</span>`;
+    prev.style.background = 'linear-gradient(135deg, var(--pk300), var(--pk600))';
+    prev.innerHTML = `<span id="profile-preview-initials">${avatarInitials}</span>`;
   }
-  if(profileData.skills){
-    const tags=profileData.skills.split(',').map(s=>s.trim()).filter(Boolean).slice(0,4);
-    const row=document.getElementById('dash-tags-row');
-    row.innerHTML=tags.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('')+'<span class="tag-gray">Open to work</span>';
+  if (profileData.skills) {
+    const tags = profileData.skills.split(',').map(s => s.trim()).filter(Boolean).slice(0, 4);
+    const row = document.getElementById('dash-tags-row');
+    if (row) row.innerHTML = tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('') + '<span class="tag-gray">Open to work</span>';
   }
-  const fields=['role','email','phone','location','bio','skills','linkedin','portfolio'];
-  fields.forEach(f=>{ const el=document.getElementById('p-'+f); if(el&&profileData[f]) el.value=profileData[f]; });
-  const pct=Object.keys(profileData).filter(k=>profileData[k]).length;
-  const fullPct=Math.min(Math.round(pct/8*100),100);
-  document.getElementById('dash-profile-bar').style.width=fullPct+'%';
-  document.getElementById('dash-profile-pct').textContent=fullPct+'%';
+  const fields = ['role', 'email', 'phone', 'location', 'bio', 'skills', 'linkedin', 'portfolio'];
+  fields.forEach(f => {
+    const el = document.getElementById('p-' + f);
+    if (el && profileData[f]) el.value = profileData[f];
+  });
+  const progressKeys = ['name', 'role', 'email', 'phone', 'location', 'bio', 'skills', 'linkedin', 'portfolio'];
+  const filled = progressKeys.filter(k => profileData[k] && String(profileData[k]).trim()).length + (profileData.photo ? 1 : 0);
+  const fullPct = Math.min(Math.round(filled / (progressKeys.length + 1) * 100), 100);
+  const dashProfileBar = document.getElementById('dash-profile-bar');
+  if (dashProfileBar) dashProfileBar.style.width = fullPct + '%';
+  const dashProfilePct = document.getElementById('dash-profile-pct');
+  if (dashProfilePct) dashProfilePct.textContent = fullPct + '%';
 }
 
 function updateProfilePreview(){
-  const name=document.getElementById('p-name').value;
-  if(name){
-    document.getElementById('profile-preview-initials').textContent=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  }
+  const name=(document.getElementById('p-name').value||SESSION_USER_NAME||'User').trim();
+  const initialsText=initials(name);
+  const previewInitials=document.getElementById('profile-preview-initials');
+  if(previewInitials) previewInitials.textContent=initialsText;
 }
 
 function previewPhoto(evt){
@@ -603,23 +1397,708 @@ function previewPhoto(evt){
     const prev=document.getElementById('profile-preview');
     prev.style.background='transparent';
     prev.innerHTML=`<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    document.getElementById('profile-preview-initials').textContent='';
     profileData.photo=src;
   };
   reader.readAsDataURL(file);
 }
 
-function saveProfile(){
+async function saveProfile(){
+  const name=document.getElementById('p-name').value.trim();
+  if(!name){
+    showToast('Please enter your name before saving your profile.','error');
+    return;
+  }
   const fields=['name','role','email','phone','location','bio','skills','linkedin','portfolio'];
-  fields.forEach(f=>{ const el=document.getElementById('p-'+f); if(el) profileData[f]=el.value; });
-  localStorage.setItem('hirebloom-profile',JSON.stringify(profileData));
-  loadProfileUI();
-  closeModal('profile-modal');
-  showToast('Profile updated! ✨','success');
+  fields.forEach(f=>{ const el=document.getElementById('p-'+f); if(el) profileData[f]=el.value.trim(); });
+
+  try {
+    const response = await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData)
+    });
+
+    if(!response.ok){
+      const error = await response.json().catch(()=>({error:'Failed to save profile'}));
+      throw new Error(error.error || 'Failed to save profile');
+    }
+
+    const savedProfile = await response.json();
+    profileData = { ...profileData, ...savedProfile };
+    localStorage.setItem('hirebloom-profile',JSON.stringify(profileData));
+    await loadProfileUI();
+    closeModal('profile-modal');
+    showToast('Profile updated! ✨','success');
+  } catch (error) {
+    showToast(error.message || 'Could not save profile right now.', 'error');
+  }
 }
+
+const RESUME_STEP_IDS = ['resume-step-1','resume-step-2','resume-step-3','resume-step-4'];
+let currentResumeStep = 1;
+let resumeExperienceEntries = [];
+
+function openResumeBuilderModal(){
+  const savedResumeDraft = JSON.parse(localStorage.getItem('hirebloom-resume-builder') || 'null');
+  const profile = JSON.parse(localStorage.getItem('hirebloom-profile') || '{}');
+
+  document.getElementById('resume-name').value = profile.name || SESSION_USER_NAME || 'Your Name';
+  document.getElementById('resume-role').value = profile.role || 'Professional';
+  document.getElementById('resume-email').value = profile.email || '';
+  document.getElementById('resume-phone').value = profile.phone || '';
+  document.getElementById('resume-location').value = profile.location || '';
+  document.getElementById('resume-target-role').value = profile.targetRole || (profile.role || 'Product Designer');
+  document.getElementById('resume-experience-level').value = profile.experienceLevel || '5+ years';
+  document.getElementById('resume-summary').value = profile.bio || 'Results-driven professional focused on delivering user-friendly experiences and measurable business impact.';
+
+  if(savedResumeDraft){
+    Object.assign(profile, savedResumeDraft);
+    document.getElementById('resume-name').value = savedResumeDraft.name || document.getElementById('resume-name').value;
+    document.getElementById('resume-role').value = savedResumeDraft.role || document.getElementById('resume-role').value;
+    document.getElementById('resume-target-role').value = savedResumeDraft.targetRole || document.getElementById('resume-target-role').value;
+    document.getElementById('resume-summary').value = savedResumeDraft.summary || document.getElementById('resume-summary').value;
+    document.getElementById('resume-experience-level').value = savedResumeDraft.experienceLevel || document.getElementById('resume-experience-level').value;
+    resumeExperienceEntries = Array.isArray(savedResumeDraft.experienceEntries) && savedResumeDraft.experienceEntries.length ? savedResumeDraft.experienceEntries : getDefaultResumeExperienceEntries();
+  } else {
+    resumeExperienceEntries = getDefaultResumeExperienceEntries();
+  }
+
+  const skillValue = profile.skills || '';
+  document.getElementById('resume-skill-input').value = '';
+  updateResumeSkillTags(skillValue);
+  renderResumeExperienceEntries();
+  currentResumeStep = 1;
+  showResumeBuilderStep(currentResumeStep);
+  document.getElementById('resume-generated-state').hidden = true;
+  document.getElementById('resume-download-btn').hidden = true;
+  document.getElementById('resume-preview-area').innerHTML = '';
+  openModal('resume-builder-modal');
+}
+
+function getDefaultResumeExperienceEntries(){
+  return [
+    {
+      company: 'Previous Company',
+      title: 'Senior Product Designer',
+      duration: '2022 - Present',
+      summary: 'Led product redesigns, improved user engagement metrics, and collaborated cross-functionally to launch high-impact features.'
+    }
+  ];
+}
+
+function showResumeBuilderStep(step){
+  currentResumeStep = step;
+  RESUME_STEP_IDS.forEach((id, index)=>{
+    const isActive = index === step-1;
+    document.getElementById(id).hidden = !isActive;
+  });
+  document.getElementById('resume-step-current').textContent = step;
+  document.getElementById('resume-step-total').textContent = RESUME_STEP_IDS.length;
+  document.getElementById('resume-progress-fill').style.width = `${Math.round((step/RESUME_STEP_IDS.length)*100)}%`;
+  document.getElementById('resume-step-label').textContent = [
+    'Profile basics',
+    'Target role & summary',
+    'Professional experience',
+    'Key skills'
+  ][step-1];
+
+  document.getElementById('resume-back-btn').hidden = step === 1;
+  document.getElementById('resume-next-btn').hidden = step === RESUME_STEP_IDS.length;
+  document.getElementById('resume-generate-btn').hidden = step !== RESUME_STEP_IDS.length;
+
+  if(step === RESUME_STEP_IDS.length){
+    generateResumePreview();
+  }
+}
+
+function resumeBuilderChangeStep(delta){
+  const nextStep = Math.min(Math.max(currentResumeStep + delta, 1), RESUME_STEP_IDS.length);
+  showResumeBuilderStep(nextStep);
+}
+
+function addResumeExperienceEntry(){
+  resumeExperienceEntries.push({company:'', title:'', duration:'', summary:''});
+  renderResumeExperienceEntries();
+}
+
+function removeResumeExperience(index){
+  resumeExperienceEntries.splice(index,1);
+  renderResumeExperienceEntries();
+}
+
+function renderResumeExperienceEntries(){
+  const container = document.getElementById('resume-experience-list');
+  if(!container) return;
+
+  container.innerHTML = resumeExperienceEntries.map((entry, index)=>`
+    <div class="resume-experience-entry" data-index="${index}">
+      <div class="resume-experience-header">
+        <div class="resume-experience-title">${escHtml(entry.company || `Experience ${index + 1}`)}</div>
+        <button class="resume-experience-remove" type="button" onclick="removeResumeExperience(${index})">Remove</button>
+      </div>
+      <div class="resume-form-grid">
+        <label class="resume-field">Company
+          <input class="form-input" type="text" data-field="company" value="${escHtml(entry.company)}" placeholder="Company name"/>
+        </label>
+        <label class="resume-field">Role
+          <input class="form-input" type="text" data-field="title" value="${escHtml(entry.title)}" placeholder="Senior Product Designer"/>
+        </label>
+        <label class="resume-field">Duration
+          <input class="form-input" type="text" data-field="duration" value="${escHtml(entry.duration)}" placeholder="2021 - 2024"/>
+        </label>
+        <label class="resume-field resume-full-span">Achievement / impact
+          <textarea class="form-input" rows="3" data-field="summary" placeholder="Improved conversion by 18% through a redesigned onboarding flow.">${escHtml(entry.summary)}</textarea>
+        </label>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-field]').forEach(field=>{
+    field.addEventListener('input', (event)=>{
+      const index = Number(event.target.closest('.resume-experience-entry').dataset.index);
+      const fieldName = event.target.dataset.field;
+      resumeExperienceEntries[index][fieldName] = event.target.value;
+      const title = document.querySelector(`.resume-experience-entry[data-index="${index}"] .resume-experience-title`);
+      if(title && fieldName === 'company') title.textContent = event.target.value || `Experience ${index + 1}`;
+    });
+  });
+}
+
+function updateResumeSkillTags(skillText){
+  const input = document.getElementById('resume-skill-input');
+  const container = document.getElementById('resume-skill-tags');
+  if(!container) return;
+
+  const skills = Array.from(new Set((skillText || (input ? input.value : '')).split(',').map(skill=>skill.trim()).filter(Boolean)));
+  container.innerHTML = skills.length ? skills.map(skill=>`<span class="resume-tag-chip">${escHtml(skill)} <button class="resume-tag-remove" type="button" onclick="removeResumeSkill('${skill.replace(/'/g, "\\'")}')">×</button></span>`).join('') : '<div class="resume-modal-note">No skills added yet. Add a few keywords to tailor the draft.</div>';
+}
+
+function addResumeSkillFromInput(){
+  const input = document.getElementById('resume-skill-input');
+  if(!input) return;
+  const value = input.value.trim();
+  if(!value){
+    showToast('Enter a skill first.', 'error');
+    return;
+  }
+  const existing = (document.getElementById('resume-skill-tags').querySelectorAll('.resume-tag-chip') || []);
+  const label = value.split(',').map(item=>item.trim()).filter(Boolean);
+  const skills = [];
+  existing.forEach(el=>skills.push(el.textContent.replace('×','').trim()));
+  label.forEach(skill=>{
+    if(!skills.includes(skill)) skills.push(skill);
+  });
+  updateResumeSkillTags(skills.join(', '));
+  input.value = '';
+}
+
+function removeResumeSkill(skill){
+  const currentSkills = Array.from(document.getElementById('resume-skill-tags').querySelectorAll('.resume-tag-chip')).map(el=>el.textContent.replace('×','').trim());
+  const nextSkills = currentSkills.filter(item=>item !== skill);
+  updateResumeSkillTags(nextSkills.join(', '));
+}
+
+function generateResumePreview(){
+  const preview = document.getElementById('resume-preview-area');
+  const loading = document.getElementById('resume-generated-state');
+  const downloadBtn = document.getElementById('resume-download-btn');
+  if(!preview || !loading || !downloadBtn) return;
+
+  loading.hidden = false;
+  preview.innerHTML = '';
+
+  const name = document.getElementById('resume-name').value.trim() || 'Your Name';
+  const role = document.getElementById('resume-role').value.trim() || 'Professional';
+  const targetRole = document.getElementById('resume-target-role').value.trim() || 'Target Role';
+  const experienceLevel = document.getElementById('resume-experience-level').value.trim() || 'Experience';
+  const summary = document.getElementById('resume-summary').value.trim() || 'Results-focused professional delivering measurable value.';
+  const skills = Array.from(new Set(Array.from(document.getElementById('resume-skill-tags').querySelectorAll('.resume-tag-chip')).map(el=>el.textContent.replace('×','').trim()).filter(Boolean)));
+
+  const experiences = resumeExperienceEntries.map(entry=>`
+    <li>
+      <strong>${escHtml(entry.title || 'Role')}</strong> — ${escHtml(entry.company || 'Company')}<br/>
+      <span>${escHtml(entry.duration || 'Duration')}</span><br/>
+      ${escHtml(entry.summary || 'Key achievement highlight.')}
+    </li>
+  `).join('');
+
+  const skillList = skills.length ? skills.map(skill=>`<li>${escHtml(skill)}</li>`).join('') : '<li>Skills will appear here.</li>';
+
+  preview.innerHTML = `
+    <div class="resume-preview-root">
+      <h1>${escHtml(name)}</h1>
+      <div class="resume-subtitle">${escHtml(role)} • ${escHtml(document.getElementById('resume-location').value.trim() || 'Location available')}</div>
+      <div class="resume-meta">
+        <span>Target role: ${escHtml(targetRole)}</span>
+        <span>Experience: ${escHtml(experienceLevel)}</span>
+        <span>${escHtml(document.getElementById('resume-email').value.trim() || 'Email available')}</span>
+      </div>
+      <div class="resume-section">
+        <h2>Professional Summary</h2>
+        <p>${escHtml(summary)}</p>
+      </div>
+      <div class="resume-section">
+        <h2>Core Skills</h2>
+        <ul class="resume-list">${skillList}</ul>
+      </div>
+      <div class="resume-section">
+        <h2>Professional Experience</h2>
+        <ul class="resume-list">${experiences}</ul>
+      </div>
+    </div>
+  `;
+
+  loading.hidden = true;
+  downloadBtn.hidden = false;
+
+  localStorage.setItem('hirebloom-resume-builder', JSON.stringify({
+    name: document.getElementById('resume-name').value.trim(),
+    role: document.getElementById('resume-role').value.trim(),
+    targetRole: document.getElementById('resume-target-role').value.trim(),
+    summary: document.getElementById('resume-summary').value.trim(),
+    experienceLevel: document.getElementById('resume-experience-level').value.trim(),
+    experienceEntries: resumeExperienceEntries,
+    skills: skills.join(', ')
+  }));
+}
+
+function downloadResume(){
+  const preview = document.getElementById('resume-preview-area');
+  if(!preview) return;
+
+  const printWindow = window.open('', '_blank', 'width=900,height=700');
+  if(!printWindow){
+    showToast('Popup blocked. Please allow popups to print your resume as PDF.', 'error');
+    return;
+  }
+
+  const printTitle = (document.getElementById('resume-name').value.trim() || 'Resume') + ' Resume';
+  const previewMarkup = preview.innerHTML;
+
+  printWindow.document.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${escHtml(printTitle)}</title>
+        <style>
+          body { margin: 0; padding: 28px; font-family: Inter, system-ui, sans-serif; color: #1f2937; background: #fff; }
+          .resume-preview-root { max-width: 800px; margin: 0 auto; }
+          .resume-preview-root h1 { margin: 0; font-size: 30px; color: #1f2937; }
+          .resume-subtitle { margin-top: 6px; font-size: 14px; color: #6b7280; font-weight: 600; }
+          .resume-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; font-size: 12px; color: #4b5563; }
+          .resume-meta span { background: #f3f4f6; border-radius:999px; padding: 5px 10px; }
+          .resume-section { margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 14px; }
+          .resume-section h2 { margin: 0 0 8px; font-size: 16px; color: #111827; }
+          .resume-section p { margin: 0; line-height: 1.55; font-size: 13px; color: #374151; }
+          .resume-list { margin: 0; padding-left: 18px; }
+          .resume-list li { margin-bottom: 8px; font-size: 13px; line-height: 1.45; color: #374151; }
+          @media print { body { padding: 18px; } }
+        </style>
+      </head>
+      <body>
+        ${previewMarkup}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(()=>{
+    printWindow.print();
+    printWindow.close();
+  }, 250);
+
+  showToast('Print dialog opened. Choose Save as PDF.', 'success');
+}
+
+const interviewPrompts = [
+  'Tell me about a project where you solved a real user problem and measured the outcome.',
+  'How would you prioritize competing deadlines while keeping product quality high?',
+  'Describe a time you received feedback and turned it into a meaningful improvement.',
+  'What motivates you to stay engaged in fast-changing product environments?'
+];
+
+function refreshInterviewQuestions(){
+  const container = document.getElementById('interview-question-list');
+  if(!container) return;
+
+  const shuffled = [...interviewPrompts].sort(()=>Math.random()-0.5).slice(0,10);
+  container.innerHTML = shuffled.map((prompt, index)=>{
+    const tags = ['Technical','Behavioural','Situational','HR'];
+    const tag = tags[index % tags.length];
+    return `<button type="button" class="interview-question-item" data-question="${escHtml(prompt)}" data-tags="${tag}">${index + 1}. ${escHtml(prompt)}</button>`;
+  }).join('');
+}
+
+function analyzeMockAnswer(){
+  const answerInput = document.getElementById('mock-answer-input');
+  const feedbackBox = document.getElementById('mock-feedback-box');
+  if(!answerInput || !feedbackBox) return;
+
+  const answer = answerInput.value.trim();
+  if(!answer){
+    feedbackBox.innerHTML = '<div class="interview-empty-state">Type a sample answer first to receive coaching feedback.</div>';
+    showToast('Add an answer before analyzing it.', 'error');
+    return;
+  }
+
+  const length = answer.length;
+  const hasConcrete = /(metric|number|improved|increased|reduced|used|launched|built)/i.test(answer);
+  const hasStructure = /(first|then|next|finally|because)/i.test(answer);
+
+  let score = 'Strong';
+  let tips = [];
+
+  if(length < 120){
+    score = 'Needs more detail';
+    tips.push('Add a concrete example and one measurable outcome.');
+  } else if(length < 220){
+    score = 'Good structure';
+    tips.push('Add one metric or result to strengthen impact.');
+  } else {
+    score = 'Excellent depth';
+    tips.push('Keep your answer concise while maintaining impact.');
+  }
+
+  if(!hasConcrete){
+    tips.push('Include a number, metric, or specific result to make the answer memorable.');
+  }
+
+  if(!hasStructure){
+    tips.push('Use a clear structure like: situation, action, result.');
+  } else {
+    tips.push('Your answer already follows a logical flow.');
+  }
+
+  feedbackBox.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-weight:800;color:var(--pk700)">Coaching summary: ${score}</div>
+      <div>Here’s what stood out:</div>
+      <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        ${tips.map(item=>`<li>${escHtml(item)}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function openInterviewPrepModal(){
+  const profile = safeParseJSON(localStorage.getItem('hirebloom-profile'), {});
+  const roleEl = document.getElementById('interview-prep-role');
+  const answerInput = document.getElementById('mock-answer-input');
+  const feedbackBox = document.getElementById('mock-feedback-box');
+
+  if (roleEl) roleEl.textContent = profile && profile.role ? profile.role : 'Product Designer';
+  refreshInterviewQuestions();
+  if (answerInput) answerInput.value = '';
+  if (feedbackBox) feedbackBox.innerHTML = '<div class="interview-empty-state">Your coaching feedback will appear here after you draft an answer.</div>';
+  resetMockInterviewUI();
+  if (typeof openModal === 'function') openModal('interview-prep-modal');
+}
+
+function resetMockInterviewUI() {
+  const sessionCard = document.getElementById('mock-session-card');
+  const resultsCard = document.getElementById('results-card');
+  const hintBox = document.getElementById('hint-box');
+  const startButton = document.getElementById('start-mock-btn');
+  const answerInput = document.getElementById('mock-answer-input');
+  const feedbackBox = document.getElementById('mock-feedback-box');
+  const totalCount = document.getElementById('mock-total-count');
+  const questionNumber = document.getElementById('mock-question-number');
+  const timer = document.getElementById('mock-timer');
+  const currentQuestion = document.getElementById('current-question-text');
+  const questionTags = document.getElementById('current-question-tags');
+
+  if (sessionCard) sessionCard.style.display = 'none';
+  if (resultsCard) resultsCard.style.display = 'none';
+  if (hintBox) hintBox.textContent = 'Hint will appear here.';
+  if (startButton) startButton.disabled = false;
+  if (answerInput) answerInput.value = '';
+  if (feedbackBox) feedbackBox.innerHTML = '<div class="interview-empty-state">Your coaching feedback will appear here after you draft an answer.</div>';
+  if (totalCount) totalCount.textContent = '0';
+  if (questionNumber) questionNumber.textContent = '1';
+  if (timer) timer.textContent = '03:00';
+  if (currentQuestion) currentQuestion.textContent = 'Your question will appear here once you start the mock interview.';
+  if (questionTags) questionTags.innerHTML = '';
+  window.mockInterviewState = null;
+}
+
+function getSelectedMockTypes() {
+  return Array.from(document.querySelectorAll('.mock-type-checkbox'))
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+}
+
+function startMockInterview() {
+  const role = document.getElementById('mock-role')?.value || 'SDE';
+  const difficulty = document.getElementById('mock-difficulty')?.value || 'Medium';
+  const count = Number(document.getElementById('mock-count')?.value || 5);
+  const time = Number(document.getElementById('mock-time')?.value || 3);
+  const types = getSelectedMockTypes();
+
+  const questions = Array.from(document.querySelectorAll('#interview-question-list button')).slice(0, count).map(btn => ({
+    text: btn.dataset.question,
+    tags: btn.dataset.tags ? btn.dataset.tags.split(',') : []
+  }));
+
+  if (!questions.length || !types.length) {
+    return alert('Please select at least one question category and generate the prompts.');
+  }
+
+  window.mockInterviewState = {
+    role,
+    difficulty,
+    count,
+    timePerQuestion: time,
+    types,
+    questions,
+    currentIndex: 0,
+    answers: [],
+    intervalId: null
+  };
+
+  document.getElementById('mock-total-count').textContent = String(count);
+  renderMockQuestion();
+  showMockSessionCard(true);
+}
+
+function showMockSessionCard(show) {
+  const sessionCard = document.getElementById('mock-session-card');
+  if (sessionCard) sessionCard.style.display = show ? 'block' : 'none';
+}
+
+function renderMockQuestion() {
+  const state = window.mockInterviewState;
+  if (!state) return;
+  const question = state.questions[state.currentIndex];
+  const currentQuestion = document.getElementById('current-question-text');
+  const tagsEl = document.getElementById('current-question-tags');
+  const numberEl = document.getElementById('mock-question-number');
+  const timerEl = document.getElementById('mock-timer');
+
+  if (numberEl) numberEl.textContent = String(state.currentIndex + 1);
+  if (currentQuestion) currentQuestion.textContent = question.text;
+  if (tagsEl) tagsEl.innerHTML = question.tags.map(tag => `<span class="interview-coach-badge">${tag}</span>`).join(' ');
+  if (timerEl) timerEl.textContent = formatTime(state.timePerQuestion * 60);
+
+  if (state.intervalId) clearInterval(state.intervalId);
+  state.remainingSeconds = state.timePerQuestion * 60;
+  state.intervalId = window.setInterval(() => {
+    state.remainingSeconds -= 1;
+    if (timerEl) timerEl.textContent = formatTime(state.remainingSeconds);
+    if (state.remainingSeconds <= 0) {
+      clearInterval(state.intervalId);
+      state.intervalId = null;
+      autoSubmitAnswer();
+    }
+  }, 1000);
+}
+
+function formatTime(seconds) {
+  const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const sec = String(seconds % 60).padStart(2, '0');
+  return `${min}:${sec}`;
+}
+
+function autoSubmitAnswer() {
+  if (window.mockInterviewState) {
+    const answer = document.getElementById('mock-answer-input')?.value || '';
+    window.mockInterviewState.answers.push(answer.trim() || '[skipped]');
+    nextMockQuestion();
+  }
+}
+
+function nextMockQuestion() {
+  const state = window.mockInterviewState;
+  if (!state) return;
+  if (state.intervalId) {
+    clearInterval(state.intervalId);
+    state.intervalId = null;
+  }
+  const answer = document.getElementById('mock-answer-input')?.value || '';
+  if (state.answers.length === state.currentIndex) {
+    state.answers.push(answer.trim() || '[skipped]');
+  }
+  state.currentIndex += 1;
+  document.getElementById('mock-answer-input').value = '';
+  if (state.currentIndex >= state.count || state.currentIndex >= state.questions.length) {
+    finishMockInterview();
+  } else {
+    renderMockQuestion();
+  }
+}
+
+function submitMockAnswer() {
+  const state = window.mockInterviewState;
+  if (!state) return;
+  if (state.intervalId) {
+    clearInterval(state.intervalId);
+    state.intervalId = null;
+  }
+  nextMockQuestion();
+}
+
+function finishMockInterview() {
+  const state = window.mockInterviewState;
+  if (!state) return;
+  showMockSessionCard(false);
+  renderMockResults(state);
+}
+
+function renderMockResults(state) {
+  const overallScore = Math.min(100, Math.max(0, Math.round((state.count * 8) + (state.questions.length * 2))));
+  const commScore = Math.max(0, Math.round(overallScore * 0.22));
+  const techScore = Math.max(0, Math.round(overallScore * 0.25));
+  const problemScore = Math.max(0, Math.round(overallScore * 0.26));
+  const confidenceScore = Math.max(0, Math.round(overallScore * 0.22));
+  const level = overallScore >= 85 ? 'Advanced' : overallScore >= 70 ? 'Competent' : overallScore >= 50 ? 'Developing' : 'Beginner';
+  const hireability = overallScore >= 85 ? 'Highly hireable' : overallScore >= 70 ? 'Hireable' : overallScore >= 50 ? 'Needs improvement' : 'Work on fundamentals';
+
+  document.getElementById('overall-score-display').textContent = String(overallScore);
+  document.getElementById('certificate-level').textContent = level;
+  document.getElementById('comm-score-display').textContent = `${commScore}/10`;
+  document.getElementById('tech-score-display').textContent = `${techScore}/10`;
+  document.getElementById('problem-score-display').textContent = `${problemScore}/10`;
+  document.getElementById('confidence-score-display').textContent = `${confidenceScore}/10`;
+  document.getElementById('level-label-display').textContent = `Level: ${level}`;
+  document.getElementById('hireability-display').textContent = `Hireability: ${hireability}`;
+  document.getElementById('strengths-box').innerHTML = `<strong>Strengths:</strong> You maintained a clear structure and completed the full mock session.`;
+  document.getElementById('improvements-box').innerHTML = `<strong>Improvements:</strong> Add more examples and drive each answer with outcomes.`;
+
+  const breakdownBody = document.getElementById('breakdown-body');
+  if (breakdownBody) {
+    breakdownBody.innerHTML = state.questions.map((question, index) => {
+      const score = Math.min(10, 4 + Math.round(Math.random() * 6));
+      const verdict = score >= 8 ? 'Strong' : score >= 5 ? 'Average' : 'Needs work';
+      return `
+        <tr>
+          <td style="padding:8px 6px;">${index + 1}</td>
+          <td style="padding:8px 6px;">${escHtml(question.text.slice(0, 46))}...</td>
+          <td style="padding:8px 6px;">${score}/10</td>
+          <td style="padding:8px 6px;">${verdict}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+  document.getElementById('results-card').style.display = 'block';
+}
+
+function getMockQuestionGuidance(questionText) {
+  const guidance = {
+    'Tell me about a project where you solved a real user problem and measured the outcome.': {
+      keywords: ['project', 'problem', 'user', 'result', 'impact', 'measured', 'improved'],
+      example: 'Talk about the challenge, your actions, and the measurable outcome. Example: "I led a redesign for X, which improved engagement by 25% and reduced user drop-off by 15%."'
+    },
+    'How would you prioritize competing deadlines while keeping product quality high?': {
+      keywords: ['prioritize', 'deadline', 'quality', 'stakeholder', 'trade-off', 'impact', 'balance'],
+      example: 'Explain your prioritization method, how you communicate trade-offs, and why quality remains a top focus. Example: "I rank by customer impact, align with stakeholders, then deliver the highest-value work first while protecting quality."'
+    },
+    'Describe a time you received feedback and turned it into a meaningful improvement.': {
+      keywords: ['feedback', 'improvement', 'learned', 'changed', 'result', 'adapted', 'growth'],
+      example: 'Share the feedback, the action you took, and the improvement that followed. Example: "After the feedback, I revised our process and increased team efficiency by 20%."'
+    },
+    'What motivates you to stay engaged in fast-changing product environments?': {
+      keywords: ['motivate', 'challenge', 'learning', 'impact', 'adapt', 'growth', 'change'],
+      example: 'Speak about what energizes you in dynamic settings and how you stay productive. Example: "I enjoy solving new problems quickly and using feedback to improve results each sprint."'
+    }
+  };
+  return guidance[questionText] || {
+    keywords: ['structure', 'impact', 'result', 'clarity'],
+    example: 'Use a clear structure and describe the result or impact of your actions.'
+  };
+}
+
+function analyzeMockAnswer() {
+  const answerText = document.getElementById('mock-answer-input')?.value || '';
+  const questionText = document.getElementById('current-question-text')?.textContent?.trim() || '';
+  const feedbackBox = document.getElementById('mock-feedback-box');
+  if (!feedbackBox) return;
+
+  if (!answerText.trim()) {
+    feedbackBox.innerHTML = '<div class="interview-empty-state">Type a sample answer first to receive coaching feedback.</div>';
+    showToast('Add an answer before analyzing it.', 'error');
+    return;
+  }
+
+  const guidance = getMockQuestionGuidance(questionText);
+  const normalizedAnswer = answerText.toLowerCase();
+  const matchedKeywords = guidance.keywords.filter(keyword => normalizedAnswer.includes(keyword));
+  const missingKeywords = guidance.keywords.filter(keyword => !normalizedAnswer.includes(keyword));
+  const hasStructure = /(first|then|next|finally|because|so|after that|as a result)/i.test(answerText);
+  const lengthScore = Math.min(20, Math.floor(answerText.trim().length / 15));
+  const keywordScore = Math.min(50, Math.round((matchedKeywords.length / guidance.keywords.length) * 50));
+  const structureScore = hasStructure ? 20 : 0;
+  const score = Math.min(100, lengthScore + keywordScore + structureScore);
+  const isCorrect = score >= 60 && matchedKeywords.length >= Math.floor(guidance.keywords.length / 2);
+
+  const tips = [];
+  if (!hasStructure) {
+    tips.push('Your response should follow a clear structure: situation, action, result.');
+  }
+  if (missingKeywords.length) {
+    tips.push(`Your answer is missing important elements like: ${missingKeywords.slice(0, 4).join(', ')}.`);
+  }
+  if (answerText.trim().length < 60) {
+    tips.push('Expand your answer with more detail and specific results.');
+  }
+  if (tips.length === 0) {
+    tips.push('Good job! Your answer includes strong structure and relevant details.');
+  }
+
+  feedbackBox.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div style="font-weight:800;color:var(--pk700)">${isCorrect ? 'Correct answer' : 'Needs improvement'}</div>
+        <div style="font-size:.86rem;color:${isCorrect ? 'var(--success)' : 'var(--danger)'}">Score: ${score}</div>
+      </div>
+      <div>${isCorrect ? 'Your response is on the right track.' : 'Your answer needs improvement to fully address the question.'}</div>
+      <div style="padding:12px;border:1px solid rgba(15,23,42,.08);border-radius:12px;background:var(--surface)">
+        <strong>Correct approach:</strong> ${escHtml(guidance.example)}
+      </div>
+      <div>
+        <strong>What to fix:</strong>
+        <ul style="margin:8px 0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px">
+          ${tips.map(item => `<li>${escHtml(item)}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+function attachMockInterviewEvents() {
+  document.getElementById('start-mock-btn')?.addEventListener('click', startMockInterview);
+  document.getElementById('reset-mock-btn')?.addEventListener('click', resetMockInterviewUI);
+  document.getElementById('submit-answer-btn')?.addEventListener('click', submitMockAnswer);
+  document.getElementById('skip-btn')?.addEventListener('click', nextMockQuestion);
+  document.getElementById('hint-btn')?.addEventListener('click', () => {
+    const hintBox = document.getElementById('hint-box');
+    if (hintBox) hintBox.textContent = 'Start with a strong opening, describe the situation clearly, and mention a result.';
+  });
+  document.getElementById('retry-same-test-btn')?.addEventListener('click', () => {
+    if (window.mockInterviewState) {
+      window.mockInterviewState.currentIndex = 0;
+      window.mockInterviewState.answers = [];
+      renderMockQuestion();
+      showMockSessionCard(true);
+      document.getElementById('results-card').style.display = 'none';
+    }
+  });
+  document.getElementById('new-test-btn')?.addEventListener('click', () => {
+    resetMockInterviewUI();
+    document.getElementById('results-card').style.display = 'none';
+  });
+  document.getElementById('save-report-btn')?.addEventListener('click', () => {
+    alert('Interview report saved for review.');
+  });
+}
+
+attachMockInterviewEvents();
 
 // ── Init ──
 renderCalendar();
 loadDashboard();
 loadProfileUI();
+refreshInterviewQuestions();
+showResumeBuilderStep(1);
 </script>
 {% endblock %}
