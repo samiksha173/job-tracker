@@ -177,7 +177,9 @@ input,select,textarea{font-family:inherit}
 @media(max-width:768px){
   .nav-links,.nav-new-btn{display:none}
   .hamburger{display:block}
-  .navbar{padding:0 18px}
+  .navbar{padding:0 18px; flex-wrap: wrap; gap: 10px;}
+  .nav-right{width:100%; justify-content: space-between; flex-wrap: wrap; gap: 10px;}
+  .notif-btn,.avatar,.sign-out-btn{flex:0 1 auto;}
 }
 
 /* ── Container ── */
