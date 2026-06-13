@@ -2016,7 +2016,11 @@ function finishMockInterview() {
 }
 
 function renderMockResults(state) {
-  const overallScore = Math.min(100, Math.max(0, Math.round((state.count * 8) + (state.questions.length * 2))));
+  const totalQuestions = state.questions.length || state.count || 1;
+  const scoredAnswers = state.questions.map((question, index) => scoreMockAnswer(state.answers[index] || '', question.text));
+  const totalScore = scoredAnswers.reduce((sum, next) => sum + next, 0);
+  const averageScore = totalQuestions ? (totalScore / totalQuestions).toFixed(1) : '0.0';
+  const overallScore = Math.min(100, Math.max(0, Math.round((Number(averageScore) / 10) * 100)));
   const commScore = Math.max(0, Math.round(overallScore * 0.22));
   const techScore = Math.max(0, Math.round(overallScore * 0.25));
   const problemScore = Math.max(0, Math.round(overallScore * 0.26));
@@ -2026,6 +2030,7 @@ function renderMockResults(state) {
 
   document.getElementById('overall-score-display').textContent = String(overallScore);
   document.getElementById('certificate-level').textContent = level;
+  document.getElementById('avg-score-display').textContent = `${averageScore}/10`;
   document.getElementById('comm-score-display').textContent = `${commScore}/10`;
   document.getElementById('tech-score-display').textContent = `${techScore}/10`;
   document.getElementById('problem-score-display').textContent = `${problemScore}/10`;
@@ -2038,8 +2043,8 @@ function renderMockResults(state) {
   const breakdownBody = document.getElementById('breakdown-body');
   if (breakdownBody) {
     breakdownBody.innerHTML = state.questions.map((question, index) => {
-      const score = Math.min(10, 4 + Math.round(Math.random() * 6));
-      const verdict = score >= 8 ? 'Strong' : score >= 5 ? 'Average' : 'Needs work';
+      const score = scoredAnswers[index];
+      const verdict = score === 0 ? 'Skipped' : score >= 8 ? 'Strong' : score >= 5 ? 'Average' : 'Needs work';
       return `
         <tr>
           <td style="padding:8px 6px;">${index + 1}</td>
@@ -2133,6 +2138,21 @@ function analyzeMockAnswer() {
       </div>
     </div>
   `;
+}
+
+function scoreMockAnswer(answerText, questionText) {
+  const guidance = getMockQuestionGuidance(questionText);
+  const normalized = String(answerText || '').trim().toLowerCase();
+  if (!normalized || normalized === '[skipped]') {
+    return 0;
+  }
+
+  const matchedKeywords = guidance.keywords.filter(keyword => normalized.includes(keyword));
+  const lengthScore = Math.min(60, Math.floor(normalized.length / 10));
+  const keywordScore = Math.min(30, Math.round((matchedKeywords.length / guidance.keywords.length) * 30));
+  const structureScore = /(first|then|next|finally|because|so|after that|as a result)/i.test(answerText) ? 10 : 0;
+  const rawScore = Math.min(100, lengthScore + keywordScore + structureScore);
+  return Math.round(rawScore / 10);
 }
 
 function attachMockInterviewEvents() {

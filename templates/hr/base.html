@@ -16,6 +16,21 @@
     <span>Job Tracker</span>
   </a>
 
+  <button class="hr-hamburger" id="hrHamburger" type="button" aria-label="Open menu">
+    ☰
+  </button>
+
+  <div class="hr-mobile-menu hidden" id="hrMobileMenu">
+    <a href="/hr/dashboard" class="hr-topnav-link {% if active=='hr_dashboard' %}active{% endif %}">Overview</a>
+    <a href="/hr/applications" class="hr-topnav-link {% if active=='hr_applications' %}active{% endif %}">All Candidates</a>
+    <a href="/hr/applicants" class="hr-topnav-link {% if active=='hr_applicants' %}active{% endif %}">Applicants</a>
+    <a href="/hr/vacancies" class="hr-topnav-link {% if active=='hr_vacancies' %}active{% endif %}">📢 Vacancies</a>
+    <div class="hr-mobile-menu-separator"></div>
+    <a href="/hr/profile" class="hr-topnav-link">👤 My Profile</a>
+    <a href="/hr/profile#security" class="hr-topnav-link">⚙️ Settings</a>
+    <a href="/logout" class="hr-topnav-link">↩️ Sign Out</a>
+  </div>
+
   <div class="hr-topnav-links">
     <a href="/hr/dashboard"
        class="hr-topnav-link {% if active=='hr_dashboard' %}active{% endif %}">
@@ -113,12 +128,22 @@ function updateHrAvatar(photoUrl, name) {
 
 window.updateHrAvatar = updateHrAvatar;
 
+const hrHamburger = document.getElementById('hrHamburger');
+const hrMobileMenu = document.getElementById('hrMobileMenu');
 const initialHrName = hrAvatarButton?.dataset.hrName || 'HR';
 const initialHrAvatar = hrAvatarButton?.dataset.avatarUrl || '';
 if (initialHrAvatar) {
   updateHrAvatar(initialHrAvatar, initialHrName);
 } else {
   updateHrAvatar(null, initialHrName);
+}
+
+if (hrHamburger && hrMobileMenu) {
+  hrHamburger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hrMobileMenu.classList.toggle('open');
+    hrMobileMenu.classList.toggle('hidden', !hrMobileMenu.classList.contains('open'));
+  });
 }
 
 fetch('/api/me').then(r => r.json()).then(u => {
@@ -248,6 +273,13 @@ document.addEventListener('click', (e) => {
   if (hrProfileMenu && !hrProfileMenu.classList.contains('hidden')) {
     if (!hrProfileMenu.contains(e.target) && e.target !== hrAvatarButton) {
       hrProfileMenu.classList.add('hidden');
+    }
+  }
+
+  if (hrMobileMenu && !hrMobileMenu.classList.contains('hidden') && e.target !== hrHamburger) {
+    if (!hrMobileMenu.contains(e.target)) {
+      hrMobileMenu.classList.add('hidden');
+      hrMobileMenu.classList.remove('open');
     }
   }
 });

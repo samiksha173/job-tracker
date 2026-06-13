@@ -2,6 +2,293 @@
 
 {% block title %}AI Interview Prep Lab — HireBloom{% endblock %}
 
+{% block head %}
+<style>
+.interview-prep-grid-layout {
+  display: grid;
+  grid-template-columns: 1.45fr .95fr;
+  gap: 24px;
+}
+.interview-prep-main-panel,
+.interview-prep-side-panel {
+  width: 100%;
+}
+.interview-prep-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.interview-prep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: .95rem;
+}
+.interview-prep-field span,
+.interview-prep-field legend {
+  font-size: .92rem;
+  font-weight: 700;
+  color: #334155;
+}
+.filter-select,
+.form-input,
+textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  font-size: 1rem;
+  color: #111827;
+  background: #fff;
+}
+textarea.form-input {
+  min-height: 160px;
+}
+.interview-type-checkboxes .checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 10px;
+}
+.interview-prep-actions,
+.mock-controls,
+.mock-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.interview-prep-actions button,
+.mock-controls button {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+.mock-actions-row {
+  width: 100%;
+}
+.mock-chat-shell {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 20px;
+}
+.mock-message-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mock-message-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
+}
+.mock-timeline-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 16px;
+  align-items: center;
+  margin: 0 -20px 16px;
+  padding: 0 20px;
+}
+.mock-timer-box,
+.mock-progress-box {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 16px;
+}
+.mock-timer-label {
+  font-size: .76rem;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.mock-timer-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #111827;
+}
+.mock-progress-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: .84rem;
+  color: #334155;
+}
+.mock-progress-track {
+  background: #eff6ff;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+.mock-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #fb7185, #ec4899);
+  transition: width .35s ease;
+}
+.mock-answer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mock-hint-box {
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  padding: 14px;
+  color: #334155;
+  min-height: 64px;
+}
+.analysis-charts-grid {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap: 18px;
+  margin-top: 16px;
+}
+.analysis-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.analysis-stat-row,
+.analysis-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.question-bank-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.question-bank-list {
+  min-height: 140px;
+}
+.youtube-card {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 12px;
+  align-items: start;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 14px;
+}
+.youtube-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fb7185, #ec4899);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+.youtube-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.youtube-card-title {
+  font-size: .94rem;
+  font-weight: 700;
+  color: #111827;
+}
+.youtube-card-meta {
+  font-size: .82rem;
+  color: #64748b;
+}
+@media (max-width: 900px) {
+  .interview-prep-grid-layout,
+  .analysis-charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .interview-prep-form-grid,
+  .question-bank-controls,
+  .analysis-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .mock-timeline-row {
+    grid-template-columns: 1fr;
+  }
+  .mock-actions-row {
+    flex-direction: column;
+    width: 100%;
+  }
+  .interview-prep-actions,
+  .mock-controls {
+    flex-direction: column;
+  }
+}
+@media (max-width: 640px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .interview-prep-grid-layout {
+    gap: 16px;
+  }
+  .interview-prep-form-grid,
+  .question-bank-controls,
+  .analysis-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .interview-prep-actions button,
+  .mock-controls button {
+    width: 100%;
+  }
+  .filter-select,
+  .form-input,
+  textarea {
+    font-size: .95rem;
+    min-height: 44px;
+  }
+  .mock-timeline-row {
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .mock-timer-box,
+  .mock-progress-box,
+  .youtube-card {
+    padding: 14px;
+  }
+  .youtube-card {
+    grid-template-columns: 1fr;
+  }
+  .youtube-card button {
+    width: 100%;
+  }
+}
+@media (max-width: 520px) {
+  .interview-prep-grid-layout {
+    gap: 14px;
+  }
+  .section-header h2 {
+    font-size: 1.15rem;
+  }
+  .interview-prep-field {
+    font-size: .92rem;
+  }
+  .interview-coach-badge {
+    padding: 6px 10px;
+    font-size: .72rem;
+  }
+  .mock-timeline-row,
+  .analysis-charts-grid,
+  .question-bank-controls {
+    gap: 12px;
+  }
+  .mock-chat-shell {
+    padding: 16px;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container" style="padding-top:24px">
   <div class="page-header">

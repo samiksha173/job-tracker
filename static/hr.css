@@ -76,6 +76,67 @@ body.hr-body {
   display: flex; align-items: center; gap: 12px; margin-left: auto;
 }
 
+.hr-hamburger {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  color: var(--text-body);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.hr-mobile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px 14px;
+  gap: 10px;
+  display: none;
+  flex-direction: column;
+  z-index: 95;
+}
+
+.hr-mobile-menu.open {
+  display: flex;
+}
+
+.hr-mobile-menu a {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-head);
+  background: #f9fafb;
+  font-weight: 700;
+  transition: background .15s, color .15s;
+}
+
+.hr-mobile-menu a:hover,
+.hr-mobile-menu a.active {
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+.hr-mobile-menu-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
 .hr-notif-wrap {
   position: relative;
 }
@@ -915,7 +976,11 @@ input:focus, select:focus, textarea:focus {
   .hr-brand-top {
     width: 100%;
   }
+  .hr-hamburger {
+    display: inline-flex;
+  }
   .hr-topnav-links {
+    display: none;
     order: 2;
     width: 100%;
     flex-wrap: wrap;
