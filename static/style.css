@@ -261,6 +261,276 @@ h3{font-size:1rem;font-weight:600}
 .hr-banner-icon {font-size:1.5rem;flex-shrink:0;margin-top:2px}
 .hr-banner-title{font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:4px}
 .hr-banner-msg  {font-size:.85rem;color:#374151;line-height:1.6}
+
+.section-card {
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  box-shadow:0 1px 8px rgba(15,23,42,.05);
+  padding:24px;
+  margin-bottom:24px;
+}
+.quick-actions {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;
+  margin-bottom:24px;
+}
+.qa-card {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:20px;
+  min-height:108px;
+  transition:transform .18s ease,box-shadow .18s ease;
+  cursor:pointer;
+  text-align:left;
+}
+.qa-card:hover { transform:translateY(-1px); box-shadow:0 14px 30px rgba(15,23,42,.08); }
+.qa-icon {
+  width:42px;
+  height:42px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+  background:#eef2ff;
+  font-size:1.25rem;
+}
+.qa-label {
+  flex:1;
+  font-weight:700;
+  font-size:1rem;
+  color:#111827;
+}
+.two-col {
+  display:grid;
+  grid-template-columns:1.65fr 1fr;
+  gap:22px;
+  align-items:start;
+}
+.profile-card {
+  display:flex;
+  align-items:center;
+  gap:18px;
+  flex-wrap:wrap;
+}
+.profile-card .link-all {
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.filter-row {
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-bottom:18px;
+}
+.filter-input,
+.filter-select {
+  min-width:0;
+  max-width:100%;
+}
+.interview-coach-section {
+  padding:24px;
+}
+.interview-coach-copy p {
+  color:#475569;
+  line-height:1.75;
+  margin-bottom:16px;
+}
+.interview-coach-highlights {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:18px;
+}
+.interview-chip {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#1d4ed8;
+  font-weight:700;
+  font-size:.88rem;
+}
+.interview-coach-cta {
+  border:none;
+  background:#4f46e5;
+  color:#fff;
+  padding:14px 20px;
+  border-radius:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .18s ease;
+}
+.interview-coach-cta:hover { background:#4338ca; }
+.resume-builder-section {
+  padding:24px;
+}
+.resume-hero-card {
+  display:flex;
+  align-items:center;
+  gap:18px;
+  background:#eef2ff;
+  border:1px solid #dbeafe;
+  border-radius:18px;
+  padding:20px;
+  flex-wrap:wrap;
+}
+.resume-hero-icon {
+  width:56px;
+  height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:18px;
+  background:#fff;
+  font-size:1.5rem;
+  box-shadow:0 10px 24px rgba(59,130,246,.12);
+}
+.resume-hero-copy h3 {
+  margin-bottom:6px;
+  font-size:1.05rem;
+}
+.resume-cta {
+  border:none;
+  background:#4338ca;
+  color:#fff;
+  border-radius:14px;
+  padding:14px 22px;
+  font-weight:700;
+  white-space:nowrap;
+  cursor:pointer;
+  margin-left:auto;
+}
+.resume-cta:hover { background:#3730a3; }
+.resume-feature-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:20px;
+}
+.resume-feature-card {
+  background:#fff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  padding:18px;
+  box-shadow:0 1px 8px rgba(15,23,42,.05);
+}
+.resume-feature-icon {
+  width:42px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+  background:#eef2ff;
+  margin-bottom:12px;
+  font-size:1.15rem;
+}
+.resume-feature-title {
+  font-weight:700;
+  margin-bottom:8px;
+}
+.resume-feature-text {
+  font-size:.92rem;
+  color:#475569;
+  line-height:1.7;
+}
+.resume-tips-card {
+  margin-top:20px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 1px 8px rgba(15,23,42,.05);
+}
+.resume-tips-header {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:14px;
+}
+.resume-tips-icon {
+  width:44px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+  background:#e0f2fe;
+  color:#0c4a6e;
+  font-size:1.2rem;
+}
+.resume-tips-title {
+  font-weight:700;
+}
+.resume-tips-list {
+  list-style:none;
+  padding:0;
+  margin:0;
+  display:grid;
+  gap:10px;
+  color:#475569;
+  font-size:.94rem;
+}
+.resume-tips-list li {
+  position:relative;
+  padding-left:18px;
+}
+.resume-tips-list li::before {
+  content:'•';
+  position:absolute;
+  left:0;
+  top:0;
+  color:#4f46e5;
+}
+.hr-banner { display:flex; align-items:flex-start; gap:14px; padding:16px 20px; border-radius:12px; margin-bottom:12px; border:1px solid; animation:slideIn .3s ease; }
+.hr-banner-icon { font-size:1.5rem; flex-shrink:0; margin-top:2px; }
+.hr-banner-title { font-weight:700; font-size:.95rem; color:#1e293b; margin-bottom:4px; }
+.hr-banner-msg { font-size:.85rem; color:#374151; line-height:1.6; }
+
+@media(max-width:1024px) {
+  .stats-grid { grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
+  .two-col { grid-template-columns:1fr; }
+  .quick-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .resume-feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media(max-width:768px) {
+  .navbar { padding:0 16px; }
+  .page-header { padding:0 0 18px; }
+  .profile-card { flex-direction:column; align-items:stretch; }
+  .profile-card .link-all { width:100%; margin-top:12px; }
+  .filter-row { flex-direction:column; align-items:stretch; }
+  .filter-input, .filter-select { width:100%; }
+  .resume-hero-card { flex-direction:column; align-items:stretch; }
+  .resume-hero-copy { flex:1; }
+  .resume-cta { margin-left:0; width:100%; }
+  .quick-actions { grid-template-columns:1fr; }
+  .section-header { flex-direction:column; align-items:flex-start; gap:10px; }
+  .hr-banner { flex-direction:column; }
+  .hr-banner-icon { margin-top:0; }
+}
+
+@media(max-width:640px) {
+  .stats-grid { grid-template-columns:1fr; }
+  .resume-feature-grid { grid-template-columns:1fr; }
+  .qa-card { flex-direction:column; align-items:flex-start; }
+  .qa-label { width:100%; }
+  .resume-hero-card { padding:16px; }
+  .section-card { padding:18px; margin-bottom:20px; }
+  .resume-tips-card { padding:16px; }
+  .hr-banner { padding:14px; }
+}
 .hr-decision{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:.8rem;color:#64748b}
 .hr-note-pill{display:inline-block;margin-top:6px;padding:5px 12px;border-radius:7px;font-size:.78rem;background:#f1f5f9;color:#475569;border-left:3px solid #4f46e5}
 .hr-note-pill.selected {border-color:#16a34a;background:#f0fdf4;color:#166534}

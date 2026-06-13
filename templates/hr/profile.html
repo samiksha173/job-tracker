@@ -174,11 +174,12 @@
 <style>
 .profile-shell{display:flex;flex-direction:column;gap:18px}
 .profile-overview-card{display:flex;align-items:center;gap:20px;background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:22px;box-shadow:0 8px 20px rgba(15,23,42,0.06)}
-.profile-avatar-wrap{position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.profile-avatar-image,.profile-avatar-fallback{width:96px;height:96px;border-radius:999px;border:3px solid #d1fae5;object-fit:cover;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#10b981,#059669);color:#fff;font-weight:800;font-size:1.4rem;box-shadow:0 10px 28px rgba(16,185,129,.18)}
-.profile-avatar-edit{position:absolute;right:-4px;bottom:-2px;border:none;border-radius:999px;background:#111827;color:#fff;padding:6px 10px;font-size:.61rem;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(17,24,39,.25)}
+.profile-avatar-wrap{position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
+.profile-avatar-image,.profile-avatar-fallback{width:96px;height:96px;border-radius:999px;border:3px solid #d1fae5;object-fit:cover;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#10b981,#059669);color:#fff;font-weight:800;font-size:1.4rem;box-shadow:0 10px 28px rgba(16,185,129,.18);z-index:1}
+.profile-avatar-edit{position:absolute;right:-4px;bottom:-2px;border:none;border-radius:999px;background:#111827;color:#fff;padding:6px 10px;font-size:.61rem;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(17,24,39,.25);z-index:2}
 .profile-overview-copy{display:flex;flex-direction:column;gap:12px;flex:1}
-.profile-overview-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.profile-overview-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.profile-overview-actions{width:auto}
 .profile-eyebrow{font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#10b981;margin-bottom:4px}
 .profile-name{margin:0;font-size:1.5rem;font-weight:800;color:#111827}
 .profile-subtitle{font-size:.88rem;color:#6b7280;margin-top:4px}
@@ -221,15 +222,32 @@
   .profile-grid{grid-template-columns:1fr}
   .profile-form-grid{grid-template-columns:1fr}
 }
+@media (max-width: 640px){
+  .profile-overview-card{flex-direction:column;gap:14px}
+  .profile-overview-topbar{flex-direction:column;align-items:flex-start}
+  .profile-overview-actions{width:100%;justify-content:flex-start}
+  .profile-avatar-wrap{margin-bottom:10px}
+}
 </style>
 
 <script>
 const avatarUploadTrigger = document.getElementById('avatarUploadTrigger');
 const avatarInput = document.getElementById('avatarInput');
-const avatarPreview = document.getElementById('profileAvatarPreview');
+const profileAvatarWrap = document.getElementById('profileAvatarWrap');
 
-if (avatarUploadTrigger && avatarInput) {
-  avatarUploadTrigger.addEventListener('click', () => avatarInput.click());
+function openHrAvatarInput() {
+  if (avatarInput) {
+    avatarInput.click();
+  }
+}
+
+if (avatarUploadTrigger) {
+  avatarUploadTrigger.addEventListener('click', openHrAvatarInput);
+}
+if (profileAvatarWrap) {
+  profileAvatarWrap.addEventListener('click', openHrAvatarInput);
+}
+if (avatarInput) {
   avatarInput.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -239,10 +257,22 @@ if (avatarUploadTrigger && avatarInput) {
     }
     const reader = new FileReader();
     reader.onload = (evt) => {
-      if (avatarPreview.tagName === 'IMG') {
-        avatarPreview.src = evt.target.result;
-      } else {
-        avatarPreview.outerHTML = `<img src="${evt.target.result}" alt="Profile avatar" class="profile-avatar-image" id="profileAvatarPreview"/>`;
+      const photoSrc = evt.target.result;
+      const currentPreview = document.getElementById('profileAvatarPreview');
+      if (currentPreview && currentPreview.tagName === 'IMG') {
+        currentPreview.src = photoSrc;
+      } else if (currentPreview) {
+        const img = document.createElement('img');
+        img.id = 'profileAvatarPreview';
+        img.src = photoSrc;
+        img.alt = 'Profile avatar';
+        img.className = 'profile-avatar-image';
+        currentPreview.replaceWith(img);
+      }
+      if (typeof updateHrAvatar === 'function') {
+        const nameInput = document.getElementById('full_name');
+        const nameValue = nameInput ? nameInput.value.trim() : (document.querySelector('.profile-name')?.textContent || 'HR');
+        updateHrAvatar(photoSrc, nameValue);
       }
     };
     reader.readAsDataURL(file);

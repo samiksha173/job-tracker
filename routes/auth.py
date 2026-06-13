@@ -149,10 +149,8 @@ def register():
                     password=generate_password_hash(password), role=role)
         db.session.add(user)
         db.session.commit()
-        session["user_id"]   = user.id
-        session["user_name"] = user.name
-        session["role"]      = user.role
-        dest = url_for("hr.hr_dashboard") if user.role == "hr" else url_for("auth.index")
+        page = "page-hr-login" if role == "hr" else "page-applicant-login"
+        dest = url_for("auth.login") + f"?page={page}"
         return jsonify({"success": True, "redirect": dest, "role": user.role})
     return render_template("register.html")
 
@@ -197,7 +195,10 @@ def profile_api():
     if request.method == "GET":
         saved_profile = UserProfile.query.filter_by(user_id=user_id).first()
         if saved_profile:
-            return jsonify(saved_profile.to_dict())
+            profile_dict = saved_profile.to_dict()
+            if saved_profile.avatar_filename and not profile_dict.get('photo'):
+                profile_dict['photo'] = url_for('serve_hr_avatar', filename=saved_profile.avatar_filename)
+            return jsonify(profile_dict)
         return jsonify({})
 
     data = request.get_json(silent=True) or {}

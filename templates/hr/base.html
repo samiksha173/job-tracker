@@ -54,7 +54,9 @@
     </div>
 
     <div class="hr-profile-menu-wrap">
-      <button class="hr-avatar-btn" id="hrAvatarButton" type="button" aria-label="Profile menu">
+      <button class="hr-avatar-btn" id="hrAvatarButton" type="button" aria-label="Profile menu"
+        data-hr-name="{{ user.name or 'HR' }}"
+        data-avatar-url="{% if profile and profile.avatar_filename %}{{ url_for('serve_hr_avatar', filename=profile.avatar_filename) }}{% endif %}">
         <span id="hrAvatarText">HR</span>
       </button>
       <div class="hr-profile-menu hidden" id="hrProfileMenu">
@@ -91,22 +93,40 @@ const hrAvatarButton = document.getElementById('hrAvatarButton');
 const hrAvatarText = document.getElementById('hrAvatarText');
 const hrProfileMenu = document.getElementById('hrProfileMenu');
 
-fetch('/api/me').then(r => r.json()).then(u => {
-  const n = u.name || 'HR';
-  const initials = n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'HR';
+function updateHrAvatar(photoUrl, name) {
+  if (!hrAvatarButton) return;
+  if (photoUrl) {
+    const img = document.createElement('img');
+    img.id = 'hrAvatarImage';
+    img.src = photoUrl;
+    img.alt = `${name || 'HR'} avatar`;
+    img.className = 'hr-avatar-image';
+    hrAvatarButton.innerHTML = '';
+    hrAvatarButton.appendChild(img);
+    return;
+  }
+  const initials = (name || 'HR').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'HR';
+  hrAvatarButton.innerHTML = '';
+  hrAvatarText.textContent = initials;
+  hrAvatarButton.appendChild(hrAvatarText);
+}
 
+window.updateHrAvatar = updateHrAvatar;
+
+const initialHrName = hrAvatarButton?.dataset.hrName || 'HR';
+const initialHrAvatar = hrAvatarButton?.dataset.avatarUrl || '';
+if (initialHrAvatar) {
+  updateHrAvatar(initialHrAvatar, initialHrName);
+} else {
+  updateHrAvatar(null, initialHrName);
+}
+
+fetch('/api/me').then(r => r.json()).then(u => {
+  const n = u.name || initialHrName;
   if (u.avatar_url) {
-    if (hrAvatarButton && !document.getElementById('hrAvatarImage')) {
-      const img = document.createElement('img');
-      img.id = 'hrAvatarImage';
-      img.src = u.avatar_url;
-      img.alt = `${n} avatar`;
-      img.className = 'hr-avatar-image';
-      hrAvatarButton.innerHTML = '';
-      hrAvatarButton.appendChild(img);
-    }
+    updateHrAvatar(u.avatar_url, n);
   } else {
-    hrAvatarText.textContent = initials;
+    updateHrAvatar(null, n);
   }
 }).catch(() => {});
 

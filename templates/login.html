@@ -534,8 +534,31 @@
 function goto(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  updateTabState(id);
   window.scrollTo(0, 0);
 }
+function updateTabState(activePage) {
+  const pageTabs = {
+    'page-applicant-login': ['#page-applicant-login .tab-btn:first-child', '#page-applicant-login .tab-btn:last-child'],
+    'page-applicant-register': ['#page-applicant-register .tab-btn:last-child', '#page-applicant-register .tab-btn:first-child'],
+    'page-hr-login': ['#page-hr-login .tab-btn:first-child', '#page-hr-login .tab-btn:last-child'],
+    'page-hr-register': ['#page-hr-register .tab-btn:last-child', '#page-hr-register .tab-btn:first-child']
+  };
+  Object.entries(pageTabs).forEach(([page, [activeSel, inactiveSel]]) => {
+    if (document.querySelector(activeSel)) {
+      document.querySelector(activeSel).classList.toggle('active', page === activePage);
+      document.querySelector(inactiveSel).classList.toggle('active', page !== activePage);
+    }
+  });
+}
+function initPageFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get('page');
+  if (page && document.getElementById(page)) {
+    goto(page);
+  }
+}
+window.addEventListener('DOMContentLoaded', initPageFromQuery);
 function openForgot(role) {
   // Hide Gmail buttons when reopening forgot page
   const afpBtn = document.getElementById('afp-gmail-btn');

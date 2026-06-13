@@ -20,31 +20,41 @@ def hr_required(f):
     return decorated
 
 
+def get_hr_context():
+    user = User.query.get(session["user_id"])
+    profile = UserProfile.query.filter_by(user_id=user.id).first() if user else None
+    return {"user": user, "profile": profile}
+
+
 # ── Pages ─────────────────────────────────────────────────────────────────────
 
 @hr_bp.route("/dashboard")
 @hr_required
 def hr_dashboard():
-    return render_template("hr/dashboard.html", active="hr_dashboard")
+    context = get_hr_context()
+    return render_template("hr/dashboard.html", active="hr_dashboard", **context)
 
 
 @hr_bp.route("/applications")
 @hr_required
 def hr_applications():
-    return render_template("hr/applications.html", active="hr_applications")
+    context = get_hr_context()
+    return render_template("hr/applications.html", active="hr_applications", **context)
 
 
 @hr_bp.route("/applicants")
 @hr_required
 def hr_applicants():
-    return render_template("hr/applicants.html", active="hr_applicants")
+    context = get_hr_context()
+    return render_template("hr/applicants.html", active="hr_applicants", **context)
 
 
 # ── NEW: Vacancies management page ────────────────────────────────────────────
 @hr_bp.route("/vacancies")
 @hr_required
 def hr_vacancies_page():
-    return render_template("hr/vacancies.html", active="hr_vacancies")
+    context = get_hr_context()
+    return render_template("hr/vacancies.html", active="hr_vacancies", **context)
 
 
 @hr_bp.route("/profile", methods=["GET", "POST"])

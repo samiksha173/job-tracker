@@ -730,6 +730,15 @@
 @media(max-width:640px){
   .dash-app-row{grid-template-columns:1fr}
   .dash-app-row .badge{justify-self:start}
+  .profile-card{flex-direction:column;align-items:flex-start}
+  .profile-card > div{width:100%}
+  .profile-card .profile-avatar-wrap{margin-bottom:12px}
+  .profile-card .link-all{width:100%;text-align:center;padding:12px 14px}
+  .section-header{flex-direction:column;align-items:flex-start;gap:10px}
+  .interview-coach-cta{width:100%;justify-content:center}
+  .interview-coach-highlights{justify-content:flex-start}
+  .resume-hero-card{flex-direction:column;align-items:flex-start}
+  .resume-cta{width:100%;text-align:center}
 }
 
 /* Profile card polish */
@@ -917,6 +926,8 @@
 <script>
 // ── Helpers ──
 const SESSION_USER_NAME = document.body.dataset.userName || 'User';
+const SESSION_USER_ID = document.body.dataset.userId || 'guest';
+const PROFILE_STORAGE_KEY = `hirebloom-profile-${SESSION_USER_ID}`;
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function safeParseJSON(value, fallback = null){
   try {
@@ -1259,7 +1270,12 @@ function prevMonth(){if(calMonth===0){calMonth=11;calYear--;}else calMonth--;ren
 function nextMonth(){if(calMonth===11){calMonth=0;calYear++;}else calMonth++;renderCalendar();}
 
 // ── Modals ──
-function openModal(id){document.getElementById(id).classList.remove('hidden')}
+function openModal(id){
+  if (id === 'profile-modal' && typeof loadProfileUI === 'function') {
+    loadProfileUI();
+  }
+  document.getElementById(id).classList.remove('hidden');
+}
 function closeModal(id){document.getElementById(id).classList.add('hidden')}
 document.querySelectorAll('.modal').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden')})});
 
@@ -1319,16 +1335,29 @@ function addReminder(){
 }
 
 // ── Profile ──
-let profileData = safeParseJSON(localStorage.getItem('hirebloom-profile'), {});
+let profileData = safeParseJSON(localStorage.getItem(PROFILE_STORAGE_KEY), {});
+window.profileData = profileData;
 
 async function loadProfileUI(){
+  const savedProfile = safeParseJSON(localStorage.getItem(PROFILE_STORAGE_KEY), {});
+  profileData = { ...savedProfile };
+
   try {
     const response = await fetch('/api/profile');
     if (response.ok) {
       const serverProfile = await response.json();
       if (serverProfile && Object.keys(serverProfile).length) {
         profileData = { ...profileData, ...serverProfile };
-        localStorage.setItem('hirebloom-profile', JSON.stringify(profileData));
+        window.profileData = profileData;
+        const storageProfile = { ...profileData };
+        if (storageProfile.photo && storageProfile.photo.startsWith('data:')) {
+          delete storageProfile.photo;
+        }
+        try {
+          localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(storageProfile));
+        } catch (err) {
+          // ignore storage failures for large image payloads
+        }
       }
     }
   } catch (error) {
@@ -1367,10 +1396,16 @@ async function loadProfileUI(){
     const row = document.getElementById('dash-tags-row');
     if (row) row.innerHTML = tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('') + '<span class="tag-gray">Open to work</span>';
   }
+  const greetingChip = document.querySelector('.greeting-chip');
+  if (greetingChip) {
+    const firstName = displayName.split(' ')[0] || 'User';
+    greetingChip.textContent = `🌸 ${getGreeting()}, ${firstName}!`;
+  }
+
   const fields = ['role', 'email', 'phone', 'location', 'bio', 'skills', 'linkedin', 'portfolio'];
   fields.forEach(f => {
     const el = document.getElementById('p-' + f);
-    if (el && profileData[f]) el.value = profileData[f];
+    if (el) el.value = profileData[f] || '';
   });
   const progressKeys = ['name', 'role', 'email', 'phone', 'location', 'bio', 'skills', 'linkedin', 'portfolio'];
   const filled = progressKeys.filter(k => profileData[k] && String(profileData[k]).trim()).length + (profileData.photo ? 1 : 0);
@@ -1379,6 +1414,18 @@ async function loadProfileUI(){
   if (dashProfileBar) dashProfileBar.style.width = fullPct + '%';
   const dashProfilePct = document.getElementById('dash-profile-pct');
   if (dashProfilePct) dashProfilePct.textContent = fullPct + '%';
+  if (window.loadNavAvatar) {
+    loadNavAvatar();
+  }
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'Good night';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 21) return 'Good evening';
+  return 'Good night';
 }
 
 function updateProfilePreview(){
@@ -1389,16 +1436,22 @@ function updateProfilePreview(){
 }
 
 function previewPhoto(evt){
-  const file=evt.target.files[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const src=e.target.result;
-    const prev=document.getElementById('profile-preview');
-    prev.style.background='transparent';
-    prev.innerHTML=`<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
-    document.getElementById('profile-preview-initials').textContent='';
-    profileData.photo=src;
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const src = e.target.result;
+    const prev = document.getElementById('profile-preview');
+    const previewInitials = document.getElementById('profile-preview-initials');
+    if (prev) {
+      prev.style.background = 'transparent';
+      prev.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    }
+    if (previewInitials) {
+      previewInitials.textContent = '';
+    }
+    profileData.photo = src;
+    window.profileData = profileData;
   };
   reader.readAsDataURL(file);
 }
@@ -1426,8 +1479,25 @@ async function saveProfile(){
 
     const savedProfile = await response.json();
     profileData = { ...profileData, ...savedProfile };
-    localStorage.setItem('hirebloom-profile',JSON.stringify(profileData));
+    window.profileData = profileData;
+    const storageProfile = { ...profileData };
+    if (storageProfile.photo && storageProfile.photo.startsWith('data:')) {
+      delete storageProfile.photo;
+    }
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(storageProfile));
+    } catch (err) {
+      delete storageProfile.photo;
+      try {
+        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(storageProfile));
+      } catch (err2) {
+        // ignore storage failures and keep profileData in memory
+      }
+    }
     await loadProfileUI();
+    if (window.loadNavAvatar) {
+      loadNavAvatar();
+    }
     closeModal('profile-modal');
     showToast('Profile updated! ✨','success');
   } catch (error) {
@@ -1441,7 +1511,7 @@ let resumeExperienceEntries = [];
 
 function openResumeBuilderModal(){
   const savedResumeDraft = JSON.parse(localStorage.getItem('hirebloom-resume-builder') || 'null');
-  const profile = JSON.parse(localStorage.getItem('hirebloom-profile') || '{}');
+  const profile = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || '{}');
 
   document.getElementById('resume-name').value = profile.name || SESSION_USER_NAME || 'Your Name';
   document.getElementById('resume-role').value = profile.role || 'Professional';
@@ -1783,7 +1853,7 @@ function analyzeMockAnswer(){
 }
 
 function openInterviewPrepModal(){
-  const profile = safeParseJSON(localStorage.getItem('hirebloom-profile'), {});
+  const profile = safeParseJSON(localStorage.getItem(PROFILE_STORAGE_KEY), {});
   const roleEl = document.getElementById('interview-prep-role');
   const answerInput = document.getElementById('mock-answer-input');
   const feedbackBox = document.getElementById('mock-feedback-box');
