@@ -26,7 +26,7 @@ def create_app():
     app.config["HR_AVATAR_FOLDER"]               = os.path.join(os.getcwd(), "media", "hr_avatars")
 
     # ── ADD THIS LINE — use your PC's local IP ────────────────────────────────
-    app.config["SERVER_NAME"] = "192.168.1.44:5000"   # ← replace x.x with your actual IP
+    #app.config["SERVER_NAME"] = "192.168.1.44:5000"   # ← replace x.x with your actual IP
 
     # ── Brevo SMTP config ─────────────────────────────────────────────────────
     app.config["MAIL_SERVER"]         = "smtp-relay.brevo.com"
